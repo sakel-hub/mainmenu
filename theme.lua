@@ -149,14 +149,19 @@ function theme.get_viewport_info()
 	local max_y = (winfo and winfo.max_formspec_size and winfo.max_formspec_size.y) or 12.0
 	local is_touch = (winfo and winfo.touch_controls == true) or false
 	local gui_scaling = (winfo and winfo.real_gui_scaling) or 1.0
+	if gui_scaling <= 0 then gui_scaling = 1.0 end
+
+	-- Normalize max_x / max_y by gui_scaling to get true physical capacity across Retina/HiDPI screens
+	local eff_max_x = max_x * gui_scaling
+	local eff_max_y = max_y * gui_scaling
 
 	-- Base master formspec dimensions: 21.6 x 12.0
-	local scale_x = max_x / 21.6
-	local scale_y = max_y / 12.0
+	local scale_x = eff_max_x / 21.6
+	local scale_y = eff_max_y / 12.0
 	local scale = math.min(scale_x, scale_y)
 
-	local is_compact = (scale < 0.95) or is_touch
-	local is_mobile = (scale < 0.75) or (is_touch and scale < 0.90)
+	local is_compact = (scale < 1.05) or is_touch
+	local is_mobile = (scale < 0.70) or (is_touch and scale < 0.90)
 
 	local tier = "desktop"
 	if is_mobile then
@@ -174,6 +179,32 @@ function theme.get_viewport_info()
 		is_mobile = is_mobile,
 		real_gui_scaling = gui_scaling,
 	}
+end
+
+-- Dynamically calculate the precise em-per-formspec-unit ratio for table columns across resolutions & DPI scales
+function theme.get_em_per_unit()
+	local winfo = core.get_window_info()
+	local win_w = (winfo and winfo.size and winfo.size.x) or 1920
+	local win_h = (winfo and winfo.size and winfo.size.y) or 1080
+	if win_w <= 0 then win_w = 1920 end
+	if win_h <= 0 then win_h = 1080 end
+
+	-- Master formspec aspect ratio is 21.6 / 12.0 = 1.80
+	local fs_w_px = math.min(win_w, win_h * 1.80)
+	local unit_px = fs_w_px / 21.6
+
+	local gui_scaling = (winfo and winfo.real_gui_scaling) or 1.0
+	if gui_scaling <= 0 then gui_scaling = 1.0 end
+	local em_px = 13.08 * gui_scaling
+
+	local ratio = unit_px / em_px
+	-- Fallback clamp between 1.5 and 6.5 em per unit
+	if ratio < 1.5 then
+		ratio = 1.5
+	elseif ratio > 6.5 then
+		ratio = 6.5
+	end
+	return ratio
 end
 
 -- Proportional typography mapping: guarantees legibility and prevents clipping on small/mobile screens

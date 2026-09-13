@@ -443,23 +443,37 @@ local function find_selected_server(servers, fallback_first)
 	return nil
 end
 
-local function make_divider_row(icon, color, title)
-	local details = {
-		icon,                          -- 1: section image (5, 6, 7)
-		"", "",                        -- 2, 3: ping color, text
-		"", "",                        -- 4, 5: players color, text
-		"", "",                        -- 6, 7: version color, text
-		"", "",                        -- 8, 9: mods color, text
-		"0",                           -- 10: creative image (blank)
-		"0",                           -- 11: damage image (blank)
-		color,                         -- 12: title color
-		core.formspec_escape("── " .. title .. " ──"), -- 13: section title text in server name column
-	}
-	assert(#details == 13)
+local function make_divider_row(icon, color, title, is_compact)
+	local details
+	if is_compact then
+		details = {
+			icon,                          -- 1: section image (5, 6, 7)
+			"", "",                        -- 2, 3: ping color, text
+			"", "",                        -- 4, 5: players color, text
+			"0",                           -- 6: creative image (blank)
+			"0",                           -- 7: damage image (blank)
+			color,                         -- 8: title color
+			core.formspec_escape("── " .. title .. " ──"), -- 9: section title text in server name column
+		}
+		assert(#details == 9)
+	else
+		details = {
+			icon,                          -- 1: section image (5, 6, 7)
+			"", "",                        -- 2, 3: ping color, text
+			"", "",                        -- 4, 5: players color, text
+			"", "",                        -- 6, 7: version color, text
+			"", "",                        -- 8, 9: mods color, text
+			"0",                           -- 10: creative image (blank)
+			"0",                           -- 11: damage image (blank)
+			color,                         -- 12: title color
+			core.formspec_escape("── " .. title .. " ──"), -- 13: section title text in server name column
+		}
+		assert(#details == 13)
+	end
 	return table.concat(details, ",")
 end
 
-local function render_enriched_serverlist_row(spec, th)
+local function render_enriched_serverlist_row(spec, th, is_compact)
 	local c = (th and th.colors) or ((mainmenu and mainmenu.theme) and mainmenu.theme.colors) or {
 		grey_out = "#aaaaaa",
 		status_fav = "#fde047",
@@ -489,9 +503,10 @@ local function render_enriched_serverlist_row(spec, th)
 	end
 	raw_name = unescape_formspec_text(raw_name)
 
+	local max_name_len = is_compact and 48 or 36
 	local display_name = raw_name
-	if #display_name > 36 then
-		display_name = display_name:sub(1, 35) .. "…"
+	if #display_name > max_name_len then
+		display_name = display_name:sub(1, max_name_len - 1) .. "…"
 	end
 	local text = core.formspec_escape(display_name)
 
@@ -521,7 +536,11 @@ local function render_enriched_serverlist_row(spec, th)
 	local local_type = get_local_server_type(spec)
 
 	if ms then
-		ping_text = ms .. "ms"
+		if ms > 999 then
+			ping_text = ">999"
+		else
+			ping_text = ms .. "ms"
+		end
 		if ms <= 100 then
 			ping_img = "1"
 			ping_color = c.ping_great
@@ -565,8 +584,14 @@ local function render_enriched_serverlist_row(spec, th)
 			clients_color = c.clients_orange
 		end
 		clients_text = format_client_count(spec.clients) .. "/" .. format_client_count(spec.clients_max)
+		if #clients_text > 8 then
+			clients_text = clients_text:sub(1, 8)
+		end
 	elseif spec.clients ~= nil then
 		clients_text = tostring(spec.clients)
+		if #clients_text > 8 then
+			clients_text = clients_text:sub(1, 8)
+		end
 	elseif local_type then
 		clients_color = c.brand_cyan
 		clients_text = "Direct"
@@ -581,14 +606,19 @@ local function render_enriched_serverlist_row(spec, th)
 		version_color = c.text_primary
 	end
 	local version_text = (raw_ver and raw_ver ~= "" and raw_ver) or "-"
-	if #version_text > 8 then
-		version_text = version_text:sub(1, 8)
+	-- Strip trailing -dev / -git or hyphens so "5.16.1-dev" becomes clean "5.16.1"
+	version_text = version_text:gsub("%-.*$", "")
+	if #version_text > 7 then
+		version_text = version_text:sub(1, 7)
 	end
 
 	-- 10/11. Mods count
 	local mods_color = c.brand_cyan
 	local mod_count = (spec.mods and type(spec.mods) == "table" and #spec.mods) or 0
-	local mods_text = mod_count > 0 and tostring(mod_count) or "-"
+	local mods_text = mod_count > 0 and (mod_count > 999 and "999+" or tostring(mod_count)) or "-"
+	if #mods_text > 4 then
+		mods_text = mods_text:sub(1, 4)
+	end
 
 	-- 12. Creative icon
 	local creative_img = spec.creative and "1" or "0"
@@ -601,17 +631,30 @@ local function render_enriched_serverlist_row(spec, th)
 		damage_img = "1"
 	end
 
-	local details = {
-		ping_img,                          -- 1: ping icon
-		ping_color, ping_text,             -- 2, 3: ping color, text
-		clients_color, clients_text,       -- 4, 5: players color, text
-		version_color, version_text,       -- 6, 7: version color, text
-		mods_color, mods_text,             -- 8, 9: mods color, text
-		creative_img,                      -- 10: creative mode icon
-		damage_img,                        -- 11: damage/pvp icon
-		name_color, text                   -- 12, 13: server name color, text
-	}
-	assert(#details == 13)
+	local details
+	if is_compact then
+		details = {
+			ping_img,                          -- 1: ping icon
+			ping_color, ping_text,             -- 2, 3: ping color, text
+			clients_color, clients_text,       -- 4, 5: players color, text
+			creative_img,                      -- 6: creative mode icon
+			damage_img,                        -- 7: damage/pvp icon
+			name_color, text                   -- 8, 9: server name color, text
+		}
+		assert(#details == 9)
+	else
+		details = {
+			ping_img,                          -- 1: ping icon
+			ping_color, ping_text,             -- 2, 3: ping color, text
+			clients_color, clients_text,       -- 4, 5: players color, text
+			version_color, version_text,       -- 6, 7: version color, text
+			mods_color, mods_text,             -- 8, 9: mods color, text
+			creative_img,                      -- 10: creative mode icon
+			damage_img,                        -- 11: damage/pvp icon
+			name_color, text                   -- 12, 13: server name color, text
+		}
+		assert(#details == 13)
+	end
 	return table.concat(details, ",")
 end
 
@@ -692,20 +735,30 @@ function view_online.render(st, th)
 		table.insert(fs, string.format("label[%.2f,1.57;%s]", x + 0.05, core.formspec_escape(title)))
 	end
 
-	make_header_button(0.45, 1.05, "ping", fgettext("Ping"), fgettext("Sort by Latency (Ping)"))
-	make_header_button(1.50, 1.10, "players", fgettext("Players"), fgettext("Sort by Online Players"))
-	make_header_button(2.60, 1.10, "version", fgettext("Version"), fgettext("Sort by Engine Version"))
-	make_header_button(3.70, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Active Mods Count (- indicates 0 reported or vanilla)"))
-	make_header_button(4.50, 0.90, "flags", fgettext("Flags"), fgettext("Sort by Gameplay Flags (Creative / PvP)"))
-	make_header_button(5.40, 6.65, "name", fgettext("Server Name"), fgettext("Sort alphabetically by Server Name"))
+	local vp = th.get_viewport_info()
+	local is_compact = vp.is_compact
 
-	-- Modern translucent table options and styling for server table
+	if is_compact then
+		-- 4 Clean full-width headers on compact screens (Total width: 1.15 + 1.45 + 1.00 + 8.00 = 11.60)
+		make_header_button(0.45, 1.15, "ping", fgettext("Ping"), fgettext("Sort by Latency (Ping)"))
+		make_header_button(1.60, 1.45, "players", fgettext("Players"), fgettext("Sort by Online Players"))
+		make_header_button(3.05, 1.00, "flags", fgettext("Flags"), fgettext("Sort by Gameplay Flags (Creative / PvP)"))
+		make_header_button(4.05, 8.00, "name", fgettext("Server Name"), fgettext("Sort alphabetically by Server Name"))
+	else
+		-- 6 Clean full-width headers on desktop screens (Total width: 1.05 + 1.10 + 1.10 + 0.80 + 0.90 + 6.65 = 11.60)
+		make_header_button(0.45, 1.05, "ping", fgettext("Ping"), fgettext("Sort by Latency (Ping)"))
+		make_header_button(1.50, 1.10, "players", fgettext("Players"), fgettext("Sort by Online Players"))
+		make_header_button(2.60, 1.10, "version", fgettext("Version"), fgettext("Sort by Engine Version"))
+		make_header_button(3.70, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Active Mods Count (- indicates 0 reported or vanilla)"))
+		make_header_button(4.50, 0.90, "flags", fgettext("Flags"), fgettext("Sort by Gameplay Flags (Creative / PvP)"))
+		make_header_button(5.40, 6.65, "name", fgettext("Server Name"), fgettext("Sort alphabetically by Server Name"))
+	end
+
+	-- Modern translucent table options and styling for server table (font_size=+0 synchronizes table cell em metrics with header labels)
 	table.insert(fs, th.tableoptions())
-	table.insert(fs, string.format("style[servers;font=normal;%s]", th.font_size("table")))
+	table.insert(fs, "style[servers;font=normal;font_size=+0]")
 
-	-- Define 13 enriched table columns with fixed aligned widths matching headers
-	table.insert(fs, "tablecolumns[" ..
-		"image," ..
+	local ping_icon_defs =
 		"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
 		"1=" .. core.formspec_escape(defaulttexturedir .. "server_ping_4.png") .. "," ..
 		"2=" .. core.formspec_escape(defaulttexturedir .. "server_ping_3.png") .. "," ..
@@ -713,27 +766,69 @@ function view_online.render(st, th)
 		"4=" .. core.formspec_escape(defaulttexturedir .. "server_ping_1.png") .. "," ..
 		"5=" .. core.formspec_escape(defaulttexturedir .. "server_favorite.png") .. "," ..
 		"6=" .. core.formspec_escape(defaulttexturedir .. "server_public.png") .. "," ..
-		"7=" .. core.formspec_escape(defaulttexturedir .. "server_incompatible.png") .. "," ..
-		"align=inline,padding=0.15,width=1.30;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.15,width=5.00;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=6.70;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=6.70;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=4.80;" ..
-		"image," ..
-		"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-		"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_creative.png") .. "," ..
-		"align=inline,padding=0.20,width=2.40;" ..
-		"image," ..
-		"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-		"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_damage.png") .. "," ..
-		"2=" .. core.formspec_escape(defaulttexturedir .. "server_flags_pvp.png") .. "," ..
-		"align=left,padding=0.20,width=2.80;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.25]")
+		"7=" .. core.formspec_escape(defaulttexturedir .. "server_incompatible.png") .. ","
+
+	local epu = th.get_em_per_unit()
+
+	if is_compact then
+		local ping_img_w = string.format("%.2f", math.max(0.6, 0.30 * epu))
+		local ping_txt_w = string.format("%.2f", math.max(1.5, (1.15 - 0.30) * epu))
+		local players_w  = string.format("%.2f", math.max(2.0, 1.45 * epu))
+		local flags1_w   = string.format("%.2f", math.max(0.8, 0.45 * epu))
+		local flags2_w   = string.format("%.2f", math.max(0.8, (1.00 - 0.45) * epu))
+
+		-- Define 9 enriched table columns precisely aligned with compact headers
+		table.insert(fs, "tablecolumns[" ..
+			"image," .. ping_icon_defs ..
+			"align=inline,padding=0.15,width=" .. ping_img_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.15,width=" .. ping_txt_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. players_w .. ";" ..
+			"image," ..
+			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
+			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_creative.png") .. "," ..
+			"align=inline,padding=0.20,width=" .. flags1_w .. ";" ..
+			"image," ..
+			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
+			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_damage.png") .. "," ..
+			"2=" .. core.formspec_escape(defaulttexturedir .. "server_flags_pvp.png") .. "," ..
+			"align=left,padding=0.20,width=" .. flags2_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.25]")
+	else
+		local ping_img_w = string.format("%.2f", math.max(0.6, 0.30 * epu))
+		local ping_txt_w = string.format("%.2f", math.max(1.5, (1.05 - 0.30) * epu))
+		local players_w  = string.format("%.2f", math.max(2.0, 1.10 * epu))
+		local version_w  = string.format("%.2f", math.max(2.0, 1.10 * epu))
+		local mods_w     = string.format("%.2f", math.max(1.5, 0.80 * epu))
+		local flags1_w   = string.format("%.2f", math.max(0.8, 0.40 * epu))
+		local flags2_w   = string.format("%.2f", math.max(0.8, (0.90 - 0.40) * epu))
+
+		-- Define 13 enriched table columns with fixed aligned widths matching desktop headers
+		table.insert(fs, "tablecolumns[" ..
+			"image," .. ping_icon_defs ..
+			"align=inline,padding=0.15,width=" .. ping_img_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.15,width=" .. ping_txt_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. players_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. version_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
+			"image," ..
+			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
+			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_creative.png") .. "," ..
+			"align=inline,padding=0.20,width=" .. flags1_w .. ";" ..
+			"image," ..
+			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
+			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_damage.png") .. "," ..
+			"2=" .. core.formspec_escape(defaulttexturedir .. "server_flags_pvp.png") .. "," ..
+			"align=left,padding=0.20,width=" .. flags2_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.25]")
+	end
 
 	-- Populate Table Rows
 	local rows = {}
@@ -749,9 +844,9 @@ function view_online.render(st, th)
 	for _, sec in ipairs(sections) do
 		local list = servers[sec.id]
 		if list and #list > 0 then
-			table.insert(rows, make_divider_row(sec.icon, sec.color, sec.title))
+			table.insert(rows, make_divider_row(sec.icon, sec.color, sec.title, is_compact))
 			for _, srv in ipairs(list) do
-				table.insert(rows, render_enriched_serverlist_row(srv, th))
+				table.insert(rows, render_enriched_serverlist_row(srv, th, is_compact))
 				local row_idx = #rows
 				menudata.server_lookup[row_idx] = srv
 				if selected_server and srv.address == selected_server.address and srv.port == selected_server.port then
@@ -770,18 +865,25 @@ function view_online.render(st, th)
 		else
 			empty_msg = fgettext("No servers available")
 		end
-		table.insert(rows, make_divider_row("0", th.colors.text_muted, empty_msg))
+		table.insert(rows, make_divider_row("0", th.colors.text_muted, empty_msg, is_compact))
 	end
 
 	table.insert(fs, string.format("table[0.45,1.85;11.6,9.75;servers;%s;%d]", table.concat(rows, ","), selected_row))
 
 	-- Column Cell Tooltips with unified modern styling matching the rest of the UI (translucent obsidian slate)
-	table.insert(fs, th.tooltip_area(0.45, 1.85, 1.05, 9.75, fgettext("Ping: Connection latency indicator (lower ms is better)")))
-	table.insert(fs, th.tooltip_area(1.50, 1.85, 1.10, 9.75, fgettext("Players: Active online players / Server player capacity")))
-	table.insert(fs, th.tooltip_area(2.60, 1.85, 1.10, 9.75, fgettext("Engine Version: Luanti server release and protocol version")))
-	table.insert(fs, th.tooltip_area(3.70, 1.85, 0.80, 9.75, fgettext("Active Mods: Count of reported mods (- indicates 0 reported or vanilla)")))
-	table.insert(fs, th.tooltip_area(4.50, 1.85, 0.90, 9.75, fgettext("Gameplay Rules: Creative mode and Damage / PvP status")))
-	table.insert(fs, th.tooltip_area(5.40, 1.85, 6.65, 9.75, fgettext("Server Name: Select server to view full title - description - address and details")))
+	if is_compact then
+		table.insert(fs, th.tooltip_area(0.45, 1.85, 1.15, 9.75, fgettext("Ping: Connection latency indicator (lower ms is better)")))
+		table.insert(fs, th.tooltip_area(1.60, 1.85, 1.45, 9.75, fgettext("Players: Active online players / Server player capacity")))
+		table.insert(fs, th.tooltip_area(3.05, 1.85, 1.00, 9.75, fgettext("Gameplay Rules: Creative mode and Damage / PvP status")))
+		table.insert(fs, th.tooltip_area(4.05, 1.85, 8.00, 9.75, fgettext("Server Name: Select server to view full title - description - address and details")))
+	else
+		table.insert(fs, th.tooltip_area(0.45, 1.85, 1.05, 9.75, fgettext("Ping: Connection latency indicator (lower ms is better)")))
+		table.insert(fs, th.tooltip_area(1.50, 1.85, 1.10, 9.75, fgettext("Players: Active online players / Server player capacity")))
+		table.insert(fs, th.tooltip_area(2.60, 1.85, 1.10, 9.75, fgettext("Engine Version: Luanti server release and protocol version")))
+		table.insert(fs, th.tooltip_area(3.70, 1.85, 0.80, 9.75, fgettext("Active Mods: Count of reported mods (- indicates 0 reported or vanilla)")))
+		table.insert(fs, th.tooltip_area(4.50, 1.85, 0.90, 9.75, fgettext("Gameplay Rules: Creative mode and Damage / PvP status")))
+		table.insert(fs, th.tooltip_area(5.40, 1.85, 6.65, 9.75, fgettext("Server Name: Select server to view full title - description - address and details")))
+	end
 
 	----------------------------------------------------------------------------
 	-- Right Panel: Selected Server Information & Connect Deck (Width: 5.60, Height: 10.45)

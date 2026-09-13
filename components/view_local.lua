@@ -503,38 +503,79 @@ function view_local.render(st, th)
 		table.insert(fs, string.format("label[%.2f,1.57;%s]", x + 0.05, core.formspec_escape(title)))
 	end
 
-	-- 7 Clean full-width headers matching Play Online (Total width: 3.70 + 2.05 + 1.30 + 0.85 + 0.80 + 1.20 + 1.70 = 11.60)
-	make_world_header_button(0.45, 3.70, "name", fgettext("World Name"), fgettext("Sort alphabetically by World Name"))
-	make_world_header_button(4.15, 2.05, "game", fgettext("Game"), fgettext("Sort by Game Title"))
-	make_world_header_button(6.20, 1.30, "mg", fgettext("Mapgen"), fgettext("Sort by Map Generator Algorithm"))
-	make_world_header_button(7.50, 0.85, "version", fgettext("Ver"), fgettext("Sort by Target Engine/Game Version"))
-	make_world_header_button(8.35, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Enabled Custom Mods Count"))
-	make_world_header_button(9.15, 1.20, "size", fgettext("Size"), fgettext("Sort by Total World File Size"))
-	make_world_header_button(10.35, 1.70, "last_played", fgettext("Last Played"), fgettext("Sort by Last Played or Modified Date"))
+	local vp = th.get_viewport_info()
+	local is_compact = vp.is_compact
+	local epu = th.get_em_per_unit()
 
-	-- Modern translucent table options and styling matching Play Online
+	if is_compact then
+		-- 4 Clean full-width headers on compact screens (Total width: 4.70 + 2.60 + 1.20 + 3.10 = 11.60)
+		make_world_header_button(0.45, 4.70, "name", fgettext("World Name"), fgettext("Sort alphabetically by World Name"))
+		make_world_header_button(5.15, 2.60, "game", fgettext("Game"), fgettext("Sort by Game Title"))
+		make_world_header_button(7.75, 1.20, "mods", fgettext("Mods"), fgettext("Sort by Enabled Custom Mods Count"))
+		make_world_header_button(8.95, 3.10, "last_played", fgettext("Last Played"), fgettext("Sort by Last Played or Modified Date"))
+	else
+		-- 7 Clean full-width headers matching Play Online (Total width: 3.70 + 2.05 + 1.30 + 0.85 + 0.80 + 1.20 + 1.70 = 11.60)
+		make_world_header_button(0.45, 3.70, "name", fgettext("World Name"), fgettext("Sort alphabetically by World Name"))
+		make_world_header_button(4.15, 2.05, "game", fgettext("Game"), fgettext("Sort by Game Title"))
+		make_world_header_button(6.20, 1.30, "mg", fgettext("Mapgen"), fgettext("Sort by Map Generator Algorithm"))
+		make_world_header_button(7.50, 0.85, "version", fgettext("Ver"), fgettext("Sort by Target Engine/Game Version"))
+		make_world_header_button(8.35, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Enabled Custom Mods Count"))
+		make_world_header_button(9.15, 1.20, "size", fgettext("Size"), fgettext("Sort by Total World File Size"))
+		make_world_header_button(10.35, 1.70, "last_played", fgettext("Last Played"), fgettext("Sort by Last Played or Modified Date"))
+	end
+
+	-- Modern translucent table options and styling matching Play Online (font_size=+0 synchronizes table cell em metrics with header labels)
 	table.insert(fs, th.tableoptions())
-	table.insert(fs, string.format("style[sp_worlds;font=normal;%s]", th.font_size("table")))
+	table.insert(fs, "style[sp_worlds;font=normal;font_size=+0]")
 
-	-- Define 15 enriched table columns precisely aligned with headers (left-aligned with proportional column widths)
-	table.insert(fs, "tablecolumns[" ..
-		"image," .. table.concat(icon_defs, ",") .. "," ..
-		"align=inline,padding=0.15,width=1.35;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.15,width=21.55;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=12.65;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=7.95;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=5.13;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=4.82;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20,width=7.32;" ..
-		"color,span=1;" ..
-		"text,align=left,padding=0.20]"
-	)
+	if is_compact then
+		local icon_w = string.format("%.2f", math.max(0.8, 0.30 * epu))
+		local name_w = string.format("%.2f", math.max(2.0, (4.70 - 0.30) * epu))
+		local game_w = string.format("%.2f", math.max(2.0, 2.60 * epu))
+		local mods_w = string.format("%.2f", math.max(1.5, 1.20 * epu))
+
+		-- Define 9 enriched table columns precisely aligned with compact headers
+		table.insert(fs, "tablecolumns[" ..
+			"image," .. table.concat(icon_defs, ",") .. "," ..
+			"align=inline,padding=0.15,width=" .. icon_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.15,width=" .. name_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. game_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20]"
+		)
+	else
+		local icon_w = string.format("%.2f", math.max(0.8, 0.30 * epu))
+		local name_w = string.format("%.2f", math.max(2.0, (3.70 - 0.30) * epu))
+		local game_w = string.format("%.2f", math.max(2.0, 2.05 * epu))
+		local mg_w   = string.format("%.2f", math.max(1.5, 1.30 * epu))
+		local ver_w  = string.format("%.2f", math.max(1.0, 0.85 * epu))
+		local mods_w = string.format("%.2f", math.max(1.0, 0.80 * epu))
+		local size_w = string.format("%.2f", math.max(1.5, 1.20 * epu))
+
+		-- Define 15 enriched table columns precisely aligned with desktop headers (left-aligned with proportional column widths)
+		table.insert(fs, "tablecolumns[" ..
+			"image," .. table.concat(icon_defs, ",") .. "," ..
+			"align=inline,padding=0.15,width=" .. icon_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.15,width=" .. name_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. game_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. mg_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. ver_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20,width=" .. size_w .. ";" ..
+			"color,span=1;" ..
+			"text,align=left,padding=0.20]"
+		)
+	end
 
 	-- Populate Table Rows
 	local rows = {}
@@ -547,51 +588,112 @@ function view_local.render(st, th)
 			local g_title = (world_game and world_game.title) or w.gameid
 			local img_idx = icon_map[w.gameid] or "0"
 
-			local display_wname = w.name
-			if #display_wname > 26 then
-				display_wname = display_wname:sub(1, 25) .. "…"
-			end
+			local row_str
+			if is_compact then
+				local display_wname = w.name
+				if #display_wname > 28 then
+					display_wname = display_wname:sub(1, 27) .. "…"
+				end
+				local display_game = g_title
+				if #display_game > 15 then
+					display_game = display_game:sub(1, 14) .. "…"
+				end
+				local mods_color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted)
+				local mods_disp = winfo.mods_str
+				if #mods_disp > 5 then mods_disp = mods_disp:sub(1, 5) end
+				local lp_disp = winfo.last_played_str
+				if #lp_disp > 14 then lp_disp = lp_disp:sub(1, 13) .. "…" end
 
-			local row_str = string.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
-				img_idx,
-				th.colors.text_primary, core.formspec_escape(display_wname),
-				th.colors.brand_green_hover, core.formspec_escape(g_title:sub(1, 16)),
-				th.colors.text_muted, core.formspec_escape(winfo.mg_name),
-				th.colors.text_muted, core.formspec_escape(winfo.version),
-				(winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted), core.formspec_escape(winfo.mods_str),
-				th.colors.text_muted, core.formspec_escape(winfo.size_str),
-				th.colors.text_primary, core.formspec_escape(winfo.last_played_str)
-			)
+				row_str = string.format("%s,%s,%s,%s,%s,%s,%s,%s,%s",
+					img_idx,
+					th.colors.text_primary, core.formspec_escape(display_wname),
+					th.colors.brand_green_hover, core.formspec_escape(display_game),
+					mods_color, core.formspec_escape(mods_disp),
+					th.colors.text_primary, core.formspec_escape(lp_disp)
+				)
+			else
+				local display_wname = w.name
+				if #display_wname > 20 then
+					display_wname = display_wname:sub(1, 19) .. "…"
+				end
+				local display_game = g_title
+				if #display_game > 12 then
+					display_game = display_game:sub(1, 11) .. "…"
+				end
+				local mg_disp = winfo.mg_name
+				if #mg_disp > 7 then mg_disp = mg_disp:sub(1, 6) .. "…" end
+				local ver_disp = winfo.version
+				if #ver_disp > 5 then ver_disp = ver_disp:sub(1, 5) end
+				local mods_color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted)
+				local mods_disp = winfo.mods_str
+				if #mods_disp > 4 then mods_disp = mods_disp:sub(1, 4) end
+				local size_disp = winfo.size_str
+				if #size_disp > 8 then size_disp = size_disp:sub(1, 8) end
+				local lp_disp = winfo.last_played_str
+				if #lp_disp > 11 then lp_disp = lp_disp:sub(1, 10) .. "…" end
+
+				row_str = string.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+					img_idx,
+					th.colors.text_primary, core.formspec_escape(display_wname),
+					th.colors.brand_green_hover, core.formspec_escape(display_game),
+					th.colors.text_muted, core.formspec_escape(mg_disp),
+					th.colors.text_muted, core.formspec_escape(ver_disp),
+					mods_color, core.formspec_escape(mods_disp),
+					th.colors.text_muted, core.formspec_escape(size_disp),
+					th.colors.text_primary, core.formspec_escape(lp_disp)
+				)
+			end
 			table.insert(rows, row_str)
 			menudata.world_lookup[r_idx] = w
 		end
 	else
 		local empty_msg = (query ~= "") and fgettext("No worlds matching '$1'", query:sub(1, 16)) or fgettext("No worlds found")
 		local muted = th.colors.text_muted or "#cbd5e1"
-		local empty_details = {
-			"0",                             -- 1: icon
-			muted,                           -- 2: color
-			core.formspec_escape(empty_msg), -- 3: text (World Name column)
-			"", "",                          -- 4, 5: Game
-			"", "",                          -- 6, 7: Mapgen
-			"", "",                          -- 8, 9: Ver
-			"", "",                          -- 10, 11: Mods
-			"", "",                          -- 12, 13: Size
-			"", "",                          -- 14, 15: Last Played
-		}
+		local empty_details
+		if is_compact then
+			empty_details = {
+				"0",                             -- 1: icon
+				muted,                           -- 2: color
+				core.formspec_escape(empty_msg), -- 3: text (World Name column)
+				"", "",                          -- 4, 5: Game
+				"", "",                          -- 6, 7: Mods
+				"", "",                          -- 8, 9: Last Played
+			}
+			assert(#empty_details == 9)
+		else
+			empty_details = {
+				"0",                             -- 1: icon
+				muted,                           -- 2: color
+				core.formspec_escape(empty_msg), -- 3: text (World Name column)
+				"", "",                          -- 4, 5: Game
+				"", "",                          -- 6, 7: Mapgen
+				"", "",                          -- 8, 9: Ver
+				"", "",                          -- 10, 11: Mods
+				"", "",                          -- 12, 13: Size
+				"", "",                          -- 14, 15: Last Played
+			}
+			assert(#empty_details == 15)
+		end
 		table.insert(rows, table.concat(empty_details, ","))
 	end
 
 	table.insert(fs, string.format("table[0.45,1.85;11.6,9.75;sp_worlds;%s;%d]", table.concat(rows, ","), selected_filtered_row))
 
 	-- Column Cell Tooltips with unified modern styling matching the rest of the UI (translucent obsidian slate)
-	table.insert(fs, th.tooltip_area(0.45, 1.85, 3.70, 9.75, fgettext("World Name: Select world to view details and launch")))
-	table.insert(fs, th.tooltip_area(4.15, 1.85, 2.05, 9.75, fgettext("Game: Installed game engine for this world")))
-	table.insert(fs, th.tooltip_area(6.20, 1.85, 1.30, 9.75, fgettext("Mapgen: Map generator algorithm and storage backend")))
-	table.insert(fs, th.tooltip_area(7.50, 1.85, 0.85, 9.75, fgettext("Version: Target engine or game version")))
-	table.insert(fs, th.tooltip_area(8.35, 1.85, 0.80, 9.75, fgettext("Mods: Number of enabled custom/world mods")))
-	table.insert(fs, th.tooltip_area(9.15, 1.85, 1.20, 9.75, fgettext("Size: Total world storage size on disk")))
-	table.insert(fs, th.tooltip_area(10.35, 1.85, 1.70, 9.75, fgettext("Last Played: Date or relative time when world was last played")))
+	if is_compact then
+		table.insert(fs, th.tooltip_area(0.45, 1.85, 4.70, 9.75, fgettext("World Name: Select world to view details and launch")))
+		table.insert(fs, th.tooltip_area(5.15, 1.85, 2.60, 9.75, fgettext("Game: Installed game engine for this world")))
+		table.insert(fs, th.tooltip_area(7.75, 1.85, 1.20, 9.75, fgettext("Mods: Number of enabled custom/world mods")))
+		table.insert(fs, th.tooltip_area(8.95, 1.85, 3.10, 9.75, fgettext("Last Played: Date or relative time when world was last played")))
+	else
+		table.insert(fs, th.tooltip_area(0.45, 1.85, 3.70, 9.75, fgettext("World Name: Select world to view details and launch")))
+		table.insert(fs, th.tooltip_area(4.15, 1.85, 2.05, 9.75, fgettext("Game: Installed game engine for this world")))
+		table.insert(fs, th.tooltip_area(6.20, 1.85, 1.30, 9.75, fgettext("Mapgen: Map generator algorithm and storage backend")))
+		table.insert(fs, th.tooltip_area(7.50, 1.85, 0.85, 9.75, fgettext("Version: Target engine or game version")))
+		table.insert(fs, th.tooltip_area(8.35, 1.85, 0.80, 9.75, fgettext("Mods: Number of enabled custom/world mods")))
+		table.insert(fs, th.tooltip_area(9.15, 1.85, 1.20, 9.75, fgettext("Size: Total world storage size on disk")))
+		table.insert(fs, th.tooltip_area(10.35, 1.85, 1.70, 9.75, fgettext("Last Played: Date or relative time when world was last played")))
+	end
 
 	----------------------------------------------------------------------------
 	-- Right Panel: World Details & Actions (Width: 5.60, Height: 10.45, matching Play Online)
