@@ -202,6 +202,11 @@ function ui_list.render_row(fs, params)
 	end
 
 	if btn_name then
+		local hov_border = th.colors.list_hover_border or "#38bdf844"
+		local hov_bg = th.colors.list_hover_bg or "#1e293b55"
+		local pre_border = th.colors.border_subtle or "#3e6c9c33"
+		local pre_bg = th.colors.list_pressed_bg or "#1d365044"
+
 		if has_cell_tooltips then
 			for c_idx, cell in ipairs(cells) do
 				local cx = cell.x or 0.0
@@ -210,8 +215,8 @@ function ui_list.render_row(fs, params)
 				local tip_content = (cell.tooltip and cell.tooltip ~= "") and cell.tooltip or params.tooltip
 
 				table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", cell_btn))
-				table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=%s]", cell_btn, th.colors.list_hover_bg))
-				table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=%s]", cell_btn, th.colors.list_pressed_bg))
+				table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;sound=ui_click;bgcolor=%s]", cell_btn, hov_border, hov_bg))
+				table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;sound=ui_click;bgcolor=%s]", cell_btn, pre_border, pre_bg))
 				table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", cell_btn))
 				table.insert(fs, string.format("button[%.2f,%.2f;%.2f,%.2f;%s;]", cx, y, cw, h, cell_btn))
 
@@ -221,8 +226,8 @@ function ui_list.render_row(fs, params)
 			end
 		else
 			table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", btn_name))
-			table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_hover_bg))
-			table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_pressed_bg))
+			table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;sound=ui_click;bgcolor=%s]", btn_name, hov_border, hov_bg))
+			table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;sound=ui_click;bgcolor=%s]", btn_name, pre_border, pre_bg))
 			table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", btn_name))
 			table.insert(fs, string.format("button[0.00,%.2f;%.2f,%.2f;%s;]", y, w, h, btn_name))
 
