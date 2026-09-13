@@ -153,6 +153,15 @@ local function init_globals()
 
 	-- Asynchronous new version check
 	check_new_version()
+
+	-- Asynchronous ContentDB catalog prefetch so packages are warm in memory
+	if contentdb and not contentdb.load_ok and not contentdb.loading and contentdb.fetch_pkgs then
+		contentdb.fetch_pkgs(function()
+			if ui and ui.update then
+				ui.update()
+			end
+		end)
+	end
 end
 
 assert(os.execute == nil)

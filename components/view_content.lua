@@ -240,6 +240,32 @@ function update_packages()
 	append_items(packages_raw, pkgmgr.texture_packs)
 	append_items(packages_raw, pkgmgr.global_mods:get_list())
 
+	-- Enrich missing package authors from ContentDB cache if available
+	if _G.contentdb and (_G.contentdb.package_by_id or _G.contentdb.packages_full or _G.contentdb.packages) then
+		local cdb_by_name = nil
+		local cdb_list = _G.contentdb.packages_full or _G.contentdb.packages or {}
+		for _, p in ipairs(packages_raw) do
+			if not p.author or p.author == "" then
+				local cdb_id = pkgmgr.get_contentdb_id and pkgmgr.get_contentdb_id(p)
+				local cdb_p = cdb_id and ((_G.contentdb.get_package_by_id and _G.contentdb.get_package_by_id(cdb_id)) or (_G.contentdb.package_by_id and _G.contentdb.package_by_id[cdb_id]))
+				if not cdb_p and p.name then
+					if not cdb_by_name then
+						cdb_by_name = {}
+						for _, cp in ipairs(cdb_list) do
+							if cp.name and cp.name ~= "" then
+								cdb_by_name[cp.name:lower()] = cp
+							end
+						end
+					end
+					cdb_p = cdb_by_name[p.name:lower()]
+				end
+				if cdb_p and cdb_p.author and cdb_p.author ~= "" then
+					p.author = cdb_p.author
+				end
+			end
+		end
+	end
+
 	local function get_data()
 		return packages_raw
 	end
@@ -252,6 +278,17 @@ function update_packages()
 end
 
 function view_content.render(st, th)
+	if _G.contentdb and not _G.contentdb.load_ok and not _G.contentdb.loading and _G.contentdb.fetch_pkgs then
+		_G.contentdb.fetch_pkgs(function()
+			if update_packages then
+				update_packages()
+			end
+			if ui and ui.update then
+				ui.update()
+			end
+		end)
+	end
+
 	if not packages then
 		update_packages()
 	end
@@ -280,7 +317,7 @@ function view_content.render(st, th)
 	table.insert(fs, string.format("style[te_content_search;border=false;textcolor=%s;font=normal;%s]",
 		th.colors.text_primary, th.font_size("body")))
 	table.insert(fs, string.format("style[te_content_search:focused;border=false;textcolor=%s;bgcolor=%s;font=normal;%s]",
-		th.colors.text_primary, th.colors.input_bg_focused or "#020712f5", th.font_size("body")))
+		th.colors.text_primary, th.colors.input_bg_focused, th.font_size("body")))
 	table.insert(fs, th.search_bar(0.55, 0.38, 5.60, 0.65, "te_content_search", search_q, is_content_search_focused, "btn_content_search", "btn_content_clear", fgettext("Search installed mods, games, and texture packs")))
 
 	-- Filter Buttons: All, Mods, Games, Textures
@@ -378,24 +415,24 @@ function view_content.render(st, th)
 				local type_badge, type_color
 				if pkg.type == "txp" then
 					type_badge = fgettext("Texture")
-					type_color = "#c084fc"
+					type_color = th.colors.badge_txp
 				elseif is_modpack then
 					type_badge = fgettext("Modpack")
-					type_color = "#4ade80"
+					type_color = th.colors.badge_modpack
 				elseif pkg.type == "game" then
 					type_badge = fgettext("Game")
-					type_color = "#fbbf24"
+					type_color = th.colors.badge_game
 				else
 					type_badge = fgettext("Mod")
-					type_color = "#38bdf8"
+					type_color = th.colors.badge_mod
 				end
 
 				local child_rows = (is_modpack and #children > 0) and math.min(#children, 8) or 0
-				local card_h = 1.52 + (child_rows > 0 and (0.35 + math.ceil(child_rows / 2) * 0.40) or 0)
+				local card_h = 1.76 + (child_rows > 0 and (0.35 + math.ceil(child_rows / 2) * 0.40) or 0)
 
 				if is_expanded then
 					-- Expanded Card
-					table.insert(fs, string.format("box[0.00,%.2f;%.2f,%.2f;#0f172acc]", cur_y, row_w, card_h))
+					table.insert(fs, string.format("box[0.00,%.2f;%.2f,%.2f;%s]", cur_y, row_w, card_h, th.colors.card_expanded_bg))
 					table.insert(fs, string.format("box[0.00,%.2f;0.06,%.2f;%s]", cur_y, card_h, th.colors.brand_green_hover))
 
 					-- Collapse toggle button [-]
@@ -436,23 +473,14 @@ function view_content.render(st, th)
 					table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_secondary))
 					table.insert(fs, string.format("label[0.15,%.2f;%s]", cur_y + 0.82, core.formspec_escape(desc_line)))
 
-					-- Action Buttons: [ 🔍 Inspect Details ] and [ 📁 Open Folder ]
-					local btn_inspect = "btn_select_pkg_" .. i
-					table.insert(fs, string.format("style[%s;border=false;bgcolor=%s;textcolor=%s;font=bold;%s]",
-						btn_inspect, th.colors.brand_green, th.colors.text_primary, th.font_size("caption")))
-					table.insert(fs, string.format("button[0.15,%.2f;2.60,0.34;%s;%s]",
-						cur_y + 1.12, btn_inspect, core.formspec_escape(fgettext("🔍 Inspect Details"))))
-					table.insert(fs, string.format("tooltip[%s;%s]", btn_inspect, core.formspec_escape(fgettext("Select package and inspect in right panel"))))
-
-					table.insert(fs, string.format("style[btn_open_pkg_dir;border=false;bgcolor=%s;textcolor=%s;font=normal;%s]",
-						th.colors.btn_secondary_bg, th.colors.text_primary, th.font_size("caption")))
-					table.insert(fs, string.format("button[2.90,%.2f;2.20,0.34;btn_open_pkg_dir;%s]",
-						cur_y + 1.12, core.formspec_escape(fgettext("📁 Open Folder"))))
-					table.insert(fs, th.tooltip("btn_open_pkg_dir", fgettext("Open local directory in system file explorer")))
+					-- Action Buttons: [ View on ContentDB ] and [ Open Folder ] using translucent theme components
+					local btn_cdb = "btn_open_pkg_cdb_" .. i
+					table.insert(fs, th.button_primary(0.15, cur_y + 1.14, 3.20, 0.48, btn_cdb, fgettext("View on ContentDB"), fgettext("Open package in ContentDB to view screenshots, reviews, and updates")))
+					table.insert(fs, th.button_secondary(3.50, cur_y + 1.14, 2.40, 0.48, "btn_open_pkg_dir", fgettext("Open Folder"), fgettext("Open local directory in system file explorer")))
 
 					-- Bundled Child Mods Grid if modpack (2 balanced columns across width 11.00)
 					if is_modpack and child_rows > 0 then
-						local sub_y = cur_y + 1.52
+						local sub_y = cur_y + 1.76
 						table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
 						table.insert(fs, string.format("label[0.15,%.2f;%s]", sub_y + 0.16, core.formspec_escape(fgettext("BUNDLED MODS:"))))
 						sub_y = sub_y + 0.32
@@ -465,7 +493,7 @@ function view_content.render(st, th)
 								local child_y = sub_y + row_offset
 								local is_child_active = (selected_child_mod and selected_child_mod.name == child.name and is_selected_pkg)
 								local c_bg = is_child_active and th.colors.btn_active_bg or th.colors.card_inner_bg
-								local c_txt_col = is_child_active and "#ffffff" or th.colors.text_primary
+								local c_txt_col = th.colors.text_primary
 								local c_btn = string.format("btn_select_child_%d_%d", i, c_idx)
 								local c_title = truncate_str(child.title or child.name, 26)
 
@@ -482,7 +510,7 @@ function view_content.render(st, th)
 				else
 					-- Collapsed Row (Sleek single-line matching Play Online mods across 11.00 width)
 					local is_card_active = is_selected_pkg and not selected_child_mod
-					local bg_col = is_card_active and "#14532d88" or "#1e293b66"
+					local bg_col = is_card_active and th.colors.card_active_bg or th.colors.card_item_bg
 					table.insert(fs, string.format("box[0.00,%.2f;%.2f,0.44;%s]", cur_y, row_w, bg_col))
 					if is_card_active then
 						table.insert(fs, string.format("box[0.00,%.2f;0.05,0.44;%s]", cur_y, th.colors.brand_green))
@@ -491,8 +519,8 @@ function view_content.render(st, th)
 					-- Clickable selection button across the entire row
 					local sel_name = "btn_select_pkg_" .. i
 					table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", sel_name))
-					table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=#3e6c9c22]", sel_name))
-					table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=#1d365044]", sel_name))
+					table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", sel_name, th.colors.list_hover_bg))
+					table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", sel_name, th.colors.list_pressed_bg))
 					table.insert(fs, string.format("button[0.00,%.2f;%.2f,0.44;%s;]", cur_y, row_w, sel_name))
 					table.insert(fs, th.tooltip(sel_name, fgettext("Select and inspect $1", pkg.title or pkg.name)))
 
@@ -515,9 +543,14 @@ function view_content.render(st, th)
 					table.insert(fs, string.format("label[5.20,%.2f;%s]", cur_y + 0.22, core.formspec_escape(type_badge)))
 
 					-- Author
-					local disp_author = truncate_str(pkg.author and ("by " .. pkg.author) or "", 22)
-					table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
-					table.insert(fs, string.format("label[6.60,%.2f;%s]", cur_y + 0.22, core.formspec_escape(disp_author)))
+					local disp_author = ""
+					if pkg.author and pkg.author ~= "" then
+						disp_author = truncate_str("by " .. pkg.author, 22)
+					end
+					if disp_author ~= "" then
+						table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
+						table.insert(fs, string.format("label[6.60,%.2f;%s]", cur_y + 0.22, core.formspec_escape(disp_author)))
+					end
 
 					-- Update badge or modpack count
 					if has_update then
@@ -594,8 +627,8 @@ function view_content.render(st, th)
 				-- Whole-tile clickable button (under text/modpack expander, transparent with subtle hover)
 				local select_btn_name = "btn_select_pkg_" .. i
 				table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", select_btn_name))
-				table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=#3e6c9c22]", select_btn_name))
-				table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=#1d365044]", select_btn_name))
+				table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", select_btn_name, th.colors.list_hover_bg))
+				table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", select_btn_name, th.colors.list_pressed_bg))
 				table.insert(fs, string.format("button[0.00,%.2f;%.2f,%.2f;%s;]", card_y, card_w, base_card_h, select_btn_name))
 				table.insert(fs, th.tooltip(select_btn_name, fgettext("Inspect $1", pkg.title or pkg.name or "")))
 
@@ -621,7 +654,7 @@ function view_content.render(st, th)
 					type_label = fgettext("GAME")
 				end
 
-				local author = pkg.author or fgettext("Unknown")
+				local author = (pkg.author and pkg.author ~= "") and pkg.author or fgettext("Unknown")
 				if #author > 20 then
 					author = author:sub(1, 19) .. "…"
 				end
@@ -634,7 +667,7 @@ function view_content.render(st, th)
 					desc_line = desc_line:sub(1, 64) .. "…"
 				end
 
-				local title_color = is_this_card_active and th.colors.brand_green_hover or "#ffffff"
+				local title_color = is_this_card_active and th.colors.brand_green_hover or th.colors.text_primary
 				table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("subtitle"), title_color))
 				table.insert(fs, string.format("label[2.45,%f;%s]", card_y + 0.32, core.formspec_escape(title)))
 
@@ -690,8 +723,8 @@ function view_content.render(st, th)
 							-- Interactive transparent button covering child mod sub-tile
 							local child_btn_name = string.format("btn_select_child_%d_%d", i, c_idx)
 							table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", child_btn_name))
-							table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=#3e6c9c22]", child_btn_name))
-							table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=#1d365044]", child_btn_name))
+							table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", child_btn_name, th.colors.list_hover_bg))
+							table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", child_btn_name, th.colors.list_pressed_bg))
 							table.insert(fs, string.format("button[0.50,%.2f;10.40,%.2f;%s;]", card_y + 0.05, sub_h, child_btn_name))
 							table.insert(fs, th.tooltip(child_btn_name, fgettext("Inspect child mod $1", child.title or child.name or "")))
 
@@ -779,7 +812,7 @@ function view_content.render(st, th)
 
 		table.insert(fs, string.format("label[12.60,1.88;%s: %s | %s: %s]",
 			core.formspec_escape(fgettext("Type")), core.formspec_escape(type_label),
-			core.formspec_escape(fgettext("Author")), core.formspec_escape(truncate_str(display_pkg.author or fgettext("Unknown"), 14))
+			core.formspec_escape(fgettext("Author")), core.formspec_escape(truncate_str((display_pkg.author and display_pkg.author ~= "") and display_pkg.author or fgettext("Unknown"), 14))
 		))
 
 		-- Screenshot Preview (Matches World Screenshot card in Local Game)
@@ -791,13 +824,17 @@ function view_content.render(st, th)
 		table.insert(fs, string.format("image[12.60,2.20;5.20,2.70;%s]", core.formspec_escape(modscreenshot)))
 
 		-- Description Box
-		table.insert(fs, th.inner_card(12.60, 5.05, 5.20, 5.50))
+		table.insert(fs, th.inner_card(12.60, 5.05, 5.20, 4.65))
 		local desc = (display_pkg.description and display_pkg.description ~= "") and display_pkg.description or fgettext("No package description available")
-		table.insert(fs, string.format("textarea[12.65,5.15;5.10,5.30;;;%s]", core.formspec_escape(desc)))
+		table.insert(fs, string.format("textarea[12.65,5.15;5.10,4.45;;;%s]", core.formspec_escape(desc)))
 
-		-- Bottom Action Buttons (Placed at y = 10.75, height = 0.85 matching Local & Online)
-		local btn_y = 10.75
-		local btn_h = 0.85
+		-- Bottom Action Buttons (Two tiers matching Local & Online layout)
+		-- Row 1: Primary "View on ContentDB" CTA button
+		table.insert(fs, th.button_primary(12.60, 9.85, 5.20, 0.72, "btn_open_selected_pkg_cdb", fgettext("View on ContentDB"), fgettext("Open package in ContentDB to view screenshots, reviews, and updates")))
+
+		-- Row 2: Secondary & Destructive Management buttons
+		local btn_y = 10.72
+		local btn_h = 0.78
 		local btn_w = 2.50
 		if display_pkg.is_child_mod then
 			table.insert(fs, th.button_secondary(12.60, btn_y, btn_w, btn_h, "btn_open_pkg_dir", fgettext("Open Folder"), fgettext("Open this child mod directory in system file manager")))

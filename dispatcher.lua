@@ -150,12 +150,194 @@ local function sanitize_name(s)
 	return str
 end
 
+local function resolve_contentdb_package(target, fallback_type)
+	if not target then return nil end
+
+	-- 1. If target is already a ContentDB package object
+	if type(target) == "table" and target.url_part and target.release and target.id then
+		return target
+	end
+
+	local cdb = rawget(_G, "contentdb")
+	if not cdb then return nil end
+
+	local pmgr = rawget(_G, "pkgmgr")
+
+	-- 2. Try lookup via pkgmgr.get_contentdb_id
+	if type(target) == "table" and pmgr and pmgr.get_contentdb_id then
+		local cdb_id = pmgr.get_contentdb_id(target)
+		if cdb_id then
+			if cdb.get_package_by_id then
+				local p = cdb.get_package_by_id(cdb_id) or cdb.get_package_by_id(cdb_id:lower())
+				if p then return p end
+			end
+			if cdb.package_by_id then
+				local p = cdb.package_by_id[cdb_id] or cdb.package_by_id[cdb_id:lower()]
+				if p then return p end
+			end
+		end
+	end
+
+	-- 3. Try lookup via author and name
+	if type(target) == "table" and target.author and target.author ~= "" and target.name then
+		if cdb.get_package_by_info then
+			local p = cdb.get_package_by_info(target.author, target.name)
+			if p then return p end
+		end
+		if cdb.package_by_id then
+			local p = cdb.package_by_id[target.author:lower() .. "/" .. target.name:lower()]
+			if p then return p end
+		end
+	end
+
+	-- 4. Search through packages_full or packages list
+	local t_name, t_title, t_author, t_type
+	if type(target) == "table" then
+		t_name = target.name or target.id
+		t_title = target.title
+		t_author = target.author
+		t_type = target.type or fallback_type or "mod"
+	else
+		t_name = tostring(target)
+		t_type = fallback_type or "mod"
+	end
+
+	local t_name_l = t_name and t_name:lower()
+	local t_title_l = t_title and t_title:lower()
+	local t_author_l = (t_author and t_author ~= "") and t_author:lower() or nil
+	local t_type_l = t_type and t_type:lower()
+
+	local pkg_list = cdb.packages_full or cdb.packages
+	if pkg_list then
+		if t_name_l then
+			-- Pass 1: exact name + exact type + matching author (if known)
+			if t_author_l then
+				for _, p in ipairs(pkg_list) do
+					if p.name and p.name:lower() == t_name_l and (not t_type_l or p.type == t_type_l) then
+						if p.author and p.author:lower() == t_author_l then
+							return p
+						end
+					end
+				end
+			end
+
+			-- Pass 2: exact name + exact type
+			for _, p in ipairs(pkg_list) do
+				if p.name and p.name:lower() == t_name_l and (not t_type_l or p.type == t_type_l) then
+					return p
+				end
+			end
+
+			-- Pass 3: exact name (any type)
+			for _, p in ipairs(pkg_list) do
+				if p.name and p.name:lower() == t_name_l then
+					return p
+				end
+			end
+
+			-- Pass 4: check aliases
+			if cdb.aliases then
+				local alias_id = cdb.aliases[t_name_l] or cdb.aliases["/" .. t_name_l]
+				if alias_id and cdb.package_by_id and cdb.package_by_id[alias_id] then
+					return cdb.package_by_id[alias_id]
+				end
+			end
+
+			-- Pass 5: if game, check normalized game id
+			if t_type_l == "game" and pmgr and pmgr.normalize_game_id then
+				local norm = pmgr.normalize_game_id(t_name_l)
+				for _, p in ipairs(pkg_list) do
+					if p.type == "game" and (p.name == norm or pmgr.normalize_game_id(p.name) == norm) then
+						return p
+					end
+				end
+			end
+		end
+
+		-- Pass 6: match by title + type
+		if t_title_l and t_title_l ~= "" then
+			for _, p in ipairs(pkg_list) do
+				if p.title and p.title:lower() == t_title_l and (not t_type_l or p.type == t_type_l) then
+					return p
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
+local function open_package_details(target, fallback_type, fallback_search)
+	if not target then return end
+
+	local mm = rawget(_G, "mainmenu")
+	local c_pkg_dlg = rawget(_G, "create_package_dialog")
+	local c_cdb_dlg = rawget(_G, "create_contentdb_dlg")
+
+	local function show_pkg(cdb_pkg)
+		if cdb_pkg and c_pkg_dlg and mm and mm.ui_element then
+			local dlg = c_pkg_dlg(cdb_pkg)
+			dlg:set_parent(mm.ui_element)
+			mm.ui_element:hide()
+			dlg:show()
+			return true
+		end
+		return false
+	end
+
+	local function fallback_to_search()
+		if c_cdb_dlg and mm and mm.ui_element then
+			local search_term = fallback_search
+			if not search_term or search_term == "" then
+				if type(target) == "table" then
+					search_term = target.name or target.title or target.id or ""
+				else
+					search_term = tostring(target)
+				end
+			end
+			local t = fallback_type or (type(target) == "table" and target.type) or "mod"
+			local dlg = c_cdb_dlg(t, nil, search_term)
+			dlg:set_parent(mm.ui_element)
+			mm.ui_element:hide()
+			dlg:show()
+		end
+	end
+
+	-- 1. If resolved immediately
+	local cdb_pkg = resolve_contentdb_package(target, fallback_type)
+	if cdb_pkg then
+		show_pkg(cdb_pkg)
+		return
+	end
+
+	-- 2. If ContentDB is not yet loaded, trigger fetch and show package when complete
+	local cdb = rawget(_G, "contentdb")
+	if cdb and not cdb.load_ok and cdb.fetch_pkgs then
+		cdb.fetch_pkgs(function(result)
+			if result then
+				local resolved = resolve_contentdb_package(target, fallback_type)
+				if resolved and show_pkg(resolved) then
+					return
+				end
+			end
+			fallback_to_search()
+		end)
+		return
+	end
+
+	-- 3. Package not found in ContentDB, fallback to search dialog
+	fallback_to_search()
+end
+
+dispatcher.resolve_contentdb_package = resolve_contentdb_package
+dispatcher.open_package_details = open_package_details
+
 function dispatcher.dispatch(st_or_fields, maybe_fields)
 	local st, fields
 	if maybe_fields ~= nil then
 		st, fields = st_or_fields, maybe_fields
 	else
-		st, fields = rawget(_G, "state"), st_or_fields
+		st, fields = rawget(_G, "state") or (mainmenu and mainmenu.state), st_or_fields
 	end
 	if not fields then return false end
 
@@ -968,28 +1150,8 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 		if view_idx then
 			local idx = tonumber(view_idx)
 			local pkg = menudata.online_filtered_cdb and menudata.online_filtered_cdb[idx]
-			if not pkg and menudata.online_filtered_mods and menudata.online_filtered_mods[idx] then
-				local m_name = menudata.online_filtered_mods[idx]:lower()
-				if _G.contentdb and _G.contentdb.packages_full then
-					for _, p in ipairs(_G.contentdb.packages_full) do
-						if p.type == "mod" and p.name and p.name:lower() == m_name then
-							pkg = p
-							break
-						end
-					end
-				end
-			end
-			if pkg and create_package_dialog then
-				local dlg = create_package_dialog(pkg)
-				dlg:set_parent(mainmenu.ui_element)
-				mainmenu.ui_element:hide()
-				dlg:show()
-			elseif create_contentdb_dlg and menudata.online_filtered_mods and menudata.online_filtered_mods[idx] then
-				local dlg = create_contentdb_dlg("mod", nil, menudata.online_filtered_mods[idx])
-				dlg:set_parent(mainmenu.ui_element)
-				mainmenu.ui_element:hide()
-				dlg:show()
-			end
+			local mod_name = menudata.online_filtered_mods and menudata.online_filtered_mods[idx]
+			open_package_details(pkg or mod_name, "mod", mod_name)
 			return true
 		end
 
@@ -1080,6 +1242,11 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 		return true
 	end
 
+	local function open_package_in_contentdb(pkg)
+		if not pkg then return end
+		open_package_details(pkg, pkg.type or "mod")
+	end
+
 	for k, _ in pairs(fields) do
 		local exp_idx = k:match("^btn_pkg_exp_(%d+)$")
 		if exp_idx then
@@ -1105,6 +1272,18 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 			st.set("selected_pkg", tonumber(select_idx))
 			st.set("selected_child_mod", nil)
 			return true
+		end
+
+		local cdb_idx = k:match("^btn_open_pkg_cdb_(%d+)$")
+		if cdb_idx then
+			local idx = tonumber(cdb_idx)
+			local pkg = menudata.pkg_list and menudata.pkg_list[idx]
+			if pkg then
+				st.set("selected_pkg", idx)
+				st.set("selected_child_mod", nil)
+				open_package_in_contentdb(pkg)
+				return true
+			end
 		end
 
 		local parent_str, child_str = k:match("^btn_select_child_(%d+)_(%d+)$")
@@ -1135,6 +1314,16 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 
 	if fields.btn_back_to_parent_pkg then
 		st.set("selected_child_mod", nil)
+		return true
+	end
+
+	if fields.btn_open_selected_pkg_cdb then
+		local child = st.get("selected_child_mod")
+		local idx = st.get("selected_pkg") or 1
+		local pkg = child or (menudata.pkg_list and menudata.pkg_list[idx])
+		if pkg then
+			open_package_in_contentdb(pkg)
+		end
 		return true
 	end
 
