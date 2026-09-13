@@ -575,19 +575,37 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 		return handle_world_sort_click("last_played")
 	end
 
-	if fields.sp_worlds then
-		local event = core.explode_table_event(fields.sp_worlds)
-		if event.type == "CHG" or event.type == "DCL" then
-			local w = menudata.world_lookup and menudata.world_lookup[event.row]
+	-- Row selection and double-click launching from scroll_container list
+	for k, _ in pairs(fields) do
+		local r_str = k:match("^btn_world_row_(%d+)")
+		if r_str then
+			local r_idx = tonumber(r_str)
+			local w = menudata.world_lookup and menudata.world_lookup[r_idx]
 			if w then
+				local prev_idx = st.get("selected_world_index")
+				local is_reclick = (prev_idx == w.list_index)
 				st.set("selected_world_index", w.list_index)
 				configure_selected_world(w.list_index)
 				core.settings:set("mainmenu_last_selected_world", tostring(w.raw_index))
-				if event.type == "DCL" then
+
+				local now = os.clock()
+				local last_time = st.get("last_world_click_time") or 0
+				local last_row = st.get("last_world_click_row") or 0
+				st.set("last_world_click_time", now)
+				st.set("last_world_click_row", r_idx)
+
+				if is_reclick and (last_row == r_idx) and (now - last_time < 0.5) then
 					launch_selected_world(st)
 				end
 				return true
 			end
+		end
+	end
+
+	if fields.local_worlds_scroll then
+		local ev = core.explode_scrollbar_event(fields.local_worlds_scroll)
+		if ev and ev.value then
+			st.set("local_worlds_scroll", ev.value, true)
 		end
 	end
 
@@ -689,23 +707,51 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 		return true
 	end
 
-	if fields.servers then
-		local event = core.explode_table_event(fields.servers)
-		if menudata.server_lookup and menudata.server_lookup[event.row] then
-			local srv = menudata.server_lookup[event.row]
-			core.settings:set("address", srv.address)
-			core.settings:set("remote_port", tostring(srv.port))
-			local p_name = st.get("player_name") or core.settings:get("name") or ""
-			if not st.get("focused_field") then
-				st.set("focused_field", (p_name ~= "") and "te_pwd" or "te_name")
+	-- Row selection and double-click connect from server scroll_container list
+	for k, _ in pairs(fields) do
+		local r_str = k:match("^btn_server_row_(%d+)")
+		if r_str then
+			local r_idx = tonumber(r_str)
+			local srv = menudata.server_lookup and menudata.server_lookup[r_idx]
+			if srv then
+				local prev_addr = core.settings:get("address")
+				local prev_port = core.settings:get("remote_port")
+				local is_reclick = (prev_addr == srv.address and prev_port == tostring(srv.port))
+
+				core.settings:set("address", srv.address)
+				core.settings:set("remote_port", tostring(srv.port))
+				local p_name = st.get("player_name") or core.settings:get("name") or ""
+				if not st.get("focused_field") then
+					st.set("focused_field", (p_name ~= "") and "te_pwd" or "te_name")
+				end
+				st.set("selected_server_mod", 1)
+				st.set("selected_server_player", 1)
+
+				local now = os.clock()
+				local last_time = st.get("last_server_click_time") or 0
+				local last_row = st.get("last_server_click_row") or 0
+				st.set("last_server_click_time", now)
+				st.set("last_server_click_row", r_idx)
+
+				if is_reclick and (last_row == r_idx) and (now - last_time < 0.5) then
+					connect_to_server(st, srv)
+				end
+				return true
 			end
-			st.set("selected_server_mod", 1)
-			st.set("selected_server_player", 1)
-			if event.type == "DCL" then
-				connect_to_server(st, srv)
-			end
-			return true
 		end
+	end
+
+	if fields.servers_scroll then
+		local ev = core.explode_scrollbar_event(fields.servers_scroll)
+		if ev and ev.value then
+			st.set("servers_scroll", ev.value, true)
+		end
+	end
+
+	if fields.btn_servers_show_more then
+		local cur_limit = tonumber(st.get("servers_display_limit") or 60) or 60
+		st.set("servers_display_limit", cur_limit + 50)
+		return true
 	end
 
 	if fields.btn_mp_login or (fields.key_enter and fields.key_enter_field == "te_pwd") then

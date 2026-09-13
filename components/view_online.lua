@@ -3,6 +3,9 @@
 
 local view_online = {}
 
+local theme = (mainmenu and mainmenu.theme) or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
+local ui_list = dofile(custom_menupath .. DIR_DELIM .. "components" .. DIR_DELIM .. "ui_list.lua")
+
 local function safe_trim(s)
 	if not s then return "" end
 	if type(s.trim) == "function" then
@@ -104,18 +107,6 @@ end
 local function unescape_formspec_text(s)
 	if not s then return "" end
 	return tostring(s):gsub("\\([\\%[%];,$])", "%1")
-end
-
-local function format_raw_text(fmt, ...)
-	if rawget(_G, "fgettext_ne") then
-		return fgettext_ne(fmt, ...)
-	end
-	local s = fmt
-	local args = {...}
-	for i, v in ipairs(args) do
-		s = s:gsub("%$" .. i, tostring(v))
-	end
-	return s
 end
 
 local function truncate_str(s, max_len)
@@ -443,54 +434,8 @@ local function find_selected_server(servers, fallback_first)
 	return nil
 end
 
-local function make_divider_row(icon, color, title, is_compact)
-	local details
-	if is_compact then
-		details = {
-			icon,                          -- 1: section image (5, 6, 7)
-			"", "",                        -- 2, 3: ping color, text
-			"", "",                        -- 4, 5: players color, text
-			"0",                           -- 6: creative image (blank)
-			"0",                           -- 7: damage image (blank)
-			color,                         -- 8: title color
-			core.formspec_escape("── " .. title .. " ──"), -- 9: section title text in server name column
-		}
-		assert(#details == 9)
-	else
-		details = {
-			icon,                          -- 1: section image (5, 6, 7)
-			"", "",                        -- 2, 3: ping color, text
-			"", "",                        -- 4, 5: players color, text
-			"", "",                        -- 6, 7: version color, text
-			"", "",                        -- 8, 9: mods color, text
-			"0",                           -- 10: creative image (blank)
-			"0",                           -- 11: damage image (blank)
-			color,                         -- 12: title color
-			core.formspec_escape("── " .. title .. " ──"), -- 13: section title text in server name column
-		}
-		assert(#details == 13)
-	end
-	return table.concat(details, ",")
-end
-
-local function render_enriched_serverlist_row(spec, th, is_compact)
-	local c = (th and th.colors) or ((mainmenu and mainmenu.theme) and mainmenu.theme.colors) or {
-		grey_out = "#aaaaaa",
-		status_fav = "#fde047",
-		text_primary = "#ffffff",
-		text_muted = "#cbd5e1",
-		ping_great = "#4ade80",
-		ping_good = "#a3e635",
-		ping_fair = "#facc15",
-		ping_poor = "#f87171",
-		clients_empty = "#64748b",
-		clients_low = "#cbd5e1",
-		clients_med = "#4ade80",
-		clients_high = "#facc15",
-		clients_max = "#ef4444",
-		clients_orange = "#fb923c",
-		brand_cyan = "#38bdf8",
-	}
+local function build_server_cells(spec, th, is_compact, is_selected)
+	local c = (th and th.colors) or (theme and theme.colors)
 
 	local raw_name = ""
 	if spec.name then
@@ -503,68 +448,49 @@ local function render_enriched_serverlist_row(spec, th, is_compact)
 	end
 	raw_name = unescape_formspec_text(raw_name)
 
-	local max_name_len = is_compact and 48 or 36
-	local display_name = raw_name
-	if #display_name > max_name_len then
-		display_name = display_name:sub(1, max_name_len - 1) .. "…"
-	end
-	local text = core.formspec_escape(display_name)
-
 	local grey_out = not spec.is_compatible
-	local name_color = (grey_out and c.grey_out) or ((spec.is_favorite and c.status_fav) or c.text_primary)
+	local name_color = (grey_out and c.grey_out) or ((spec.is_favorite and c.status_fav) or (is_selected and c.brand_green_hover or c.text_primary))
 
-	-- 1. Ping icon & 4/5. Ping text
-	local ping_img = "0"
+	-- 1. Ping icon & text
+	local ping_texture = nil
 	local ping_color = c.text_muted
 	local ping_text = "-"
 	local ms = nil
 
 	if spec.ping then
-		if spec.ping < 10 then
-			ms = math.floor(spec.ping * 1000)
-		else
-			ms = math.floor(spec.ping)
-		end
+		ms = (spec.ping < 10) and math.floor(spec.ping * 1000) or math.floor(spec.ping)
 	elseif spec.lag then
-		if spec.lag < 10 then
-			ms = math.floor(spec.lag * 1000)
-		else
-			ms = math.floor(spec.lag)
-		end
+		ms = (spec.lag < 10) and math.floor(spec.lag * 1000) or math.floor(spec.lag)
 	end
 
 	local local_type = get_local_server_type(spec)
 
 	if ms then
-		if ms > 999 then
-			ping_text = ">999"
-		else
-			ping_text = ms .. "ms"
-		end
+		ping_text = (ms > 999) and ">999" or (ms .. "ms")
 		if ms <= 100 then
-			ping_img = "1"
+			ping_texture = defaulttexturedir .. "server_ping_4.png"
 			ping_color = c.ping_great
 		elseif ms <= 180 then
-			ping_img = "2"
+			ping_texture = defaulttexturedir .. "server_ping_3.png"
 			ping_color = c.ping_good
 		elseif ms <= 260 then
-			ping_img = "3"
+			ping_texture = defaulttexturedir .. "server_ping_2.png"
 			ping_color = c.ping_fair
 		else
-			ping_img = "4"
+			ping_texture = defaulttexturedir .. "server_ping_1.png"
 			ping_color = c.ping_poor
 		end
 	elseif local_type == "localhost" then
-		ping_text = "< 1ms"
-		ping_img = "1"
+		ping_text = "<1ms"
+		ping_texture = defaulttexturedir .. "server_ping_4.png"
 		ping_color = c.ping_great
 	elseif local_type == "lan" then
 		ping_text = "LAN"
-		ping_img = "1"
+		ping_texture = defaulttexturedir .. "server_ping_4.png"
 		ping_color = c.ping_great
 	end
 
-	-- 6/7. Players
+	-- 2. Players
 	local clients_color = c.text_muted
 	local clients_text = "?"
 	if spec.clients ~= nil and spec.clients_max ~= nil then
@@ -597,8 +523,8 @@ local function render_enriched_serverlist_row(spec, th, is_compact)
 		clients_text = "Direct"
 	end
 
-	-- 8/9. Version (faded white for crisp readability matching local game mapgen)
-	local version_color = c.text_muted or "#cbd5e1"
+	-- 3. Version
+	local version_color = c.text_muted
 	local raw_ver = spec.version
 	if (not raw_ver or raw_ver == "") and local_type then
 		local v = core.get_version()
@@ -606,13 +532,12 @@ local function render_enriched_serverlist_row(spec, th, is_compact)
 		version_color = c.text_primary
 	end
 	local version_text = (raw_ver and raw_ver ~= "" and raw_ver) or "-"
-	-- Strip trailing -dev / -git or hyphens so "5.16.1-dev" becomes clean "5.16.1"
 	version_text = version_text:gsub("%-.*$", "")
 	if #version_text > 7 then
 		version_text = version_text:sub(1, 7)
 	end
 
-	-- 10/11. Mods count
+	-- 4. Mods count
 	local mods_color = c.brand_cyan
 	local mod_count = (spec.mods and type(spec.mods) == "table" and #spec.mods) or 0
 	local mods_text = mod_count > 0 and (mod_count > 999 and "999+" or tostring(mod_count)) or "-"
@@ -620,42 +545,39 @@ local function render_enriched_serverlist_row(spec, th, is_compact)
 		mods_text = mods_text:sub(1, 4)
 	end
 
-	-- 12. Creative icon
-	local creative_img = spec.creative and "1" or "0"
-
-	-- 13. Damage / PvP icon
-	local damage_img = "0"
+	-- 5. Flags: Creative / Damage / PvP
+	local creative_texture = spec.creative and (defaulttexturedir .. "server_flags_creative.png") or nil
+	local damage_texture = nil
 	if spec.pvp then
-		damage_img = "2"
+		damage_texture = defaulttexturedir .. "server_flags_pvp.png"
 	elseif spec.damage then
-		damage_img = "1"
+		damage_texture = defaulttexturedir .. "server_flags_damage.png"
 	end
 
-	local details
 	if is_compact then
-		details = {
-			ping_img,                          -- 1: ping icon
-			ping_color, ping_text,             -- 2, 3: ping color, text
-			clients_color, clients_text,       -- 4, 5: players color, text
-			creative_img,                      -- 6: creative mode icon
-			damage_img,                        -- 7: damage/pvp icon
-			name_color, text                   -- 8, 9: server name color, text
+		local srv_tip = raw_name .. ((spec.description and spec.description ~= "") and ("\n" .. spec.description:sub(1, 100)) or "")
+		return {
+			{ type = "icon", x = 0.00, w = 0.35, texture = ping_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.05, pad_y = 0.10, tooltip = fgettext("Ping: $1", ping_text) },
+			{ type = "text", x = 0.35, w = 0.80, text = ping_text, color = ping_color, font_weight = "bold", pad_x = 0.02, tooltip = fgettext("Ping: $1", ping_text) },
+			{ type = "text", x = 1.15, w = 1.45, text = clients_text, color = clients_color, font_weight = "bold", pad_x = 0.05, max_chars = 9, tooltip = fgettext("Online Players: $1", clients_text) },
+			{ type = "icon", x = 2.60, w = 0.48, texture = creative_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.07, pad_y = 0.10, tooltip = spec.creative and fgettext("Creative Mode: Enabled") or fgettext("Creative Mode: Disabled") },
+			{ type = "icon", x = 3.08, w = 0.48, texture = damage_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.07, pad_y = 0.10, tooltip = (spec.pvp and fgettext("PvP Combat: Enabled") or (spec.damage and fgettext("Damage: Enabled") or fgettext("Damage: Disabled"))) },
+			{ type = "text", x = 3.65, w = 7.60, text = raw_name, color = name_color, font_weight = "bold", pad_x = 0.08, max_chars = 44, tooltip = srv_tip },
 		}
-		assert(#details == 9)
 	else
-		details = {
-			ping_img,                          -- 1: ping icon
-			ping_color, ping_text,             -- 2, 3: ping color, text
-			clients_color, clients_text,       -- 4, 5: players color, text
-			version_color, version_text,       -- 6, 7: version color, text
-			mods_color, mods_text,             -- 8, 9: mods color, text
-			creative_img,                      -- 10: creative mode icon
-			damage_img,                        -- 11: damage/pvp icon
-			name_color, text                   -- 12, 13: server name color, text
+		local srv_tip = raw_name .. ((spec.address and spec.address ~= "") and ("\n" .. spec.address .. (spec.port and (":" .. spec.port) or "")) or "") .. ((spec.description and spec.description ~= "") and ("\n" .. spec.description:sub(1, 120)) or "")
+		local flags_tip = (spec.creative and fgettext("Creative: ON") or fgettext("Creative: OFF")) .. " | " .. (spec.pvp and fgettext("PvP: ON") or fgettext("PvP: OFF")) .. " | " .. (spec.damage and fgettext("Damage: ON") or fgettext("Damage: OFF"))
+		return {
+			{ type = "icon", x = 0.00, w = 0.35, texture = ping_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.05, pad_y = 0.10, tooltip = fgettext("Ping: $1", ping_text) },
+			{ type = "text", x = 0.35, w = 0.90, text = ping_text, color = ping_color, font_weight = "bold", pad_x = 0.02, tooltip = fgettext("Ping: $1", ping_text) },
+			{ type = "text", x = 1.25, w = 1.35, text = clients_text, color = clients_color, font_weight = "bold", pad_x = 0.05, max_chars = 8, tooltip = fgettext("Online Players: $1", clients_text) .. "\n" .. fgettext("(Click to view player list)") },
+			{ type = "text", x = 2.60, w = 1.00, text = version_text, color = version_color, font_weight = "normal", pad_x = 0.05, max_chars = 7, tooltip = fgettext("Server Engine Version: $1", (raw_ver and raw_ver ~= "") and raw_ver or "Unknown") },
+			{ type = "text", x = 3.60, w = 0.90, text = mods_text, color = mods_color, font_weight = "bold", pad_x = 0.05, max_chars = 6, tooltip = fgettext("Server Mods: $1", mods_text) .. "\n" .. fgettext("(Click to view mod list)") },
+			{ type = "icon", x = 4.50, w = 0.45, texture = creative_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.07, pad_y = 0.10, tooltip = flags_tip },
+			{ type = "icon", x = 4.95, w = 0.45, texture = damage_texture, icon_w = 0.28, icon_h = 0.28, pad_x = 0.07, pad_y = 0.10, tooltip = flags_tip },
+			{ type = "text", x = 5.40, w = 5.85, text = raw_name, color = name_color, font_weight = "bold", pad_x = 0.08, max_chars = 36, tooltip = srv_tip },
 		}
-		assert(#details == 13)
 	end
-	return table.concat(details, ",")
 end
 
 function view_online.render(st, th)
@@ -704,186 +626,113 @@ function view_online.render(st, th)
 	-- Left Panel: Server Table (Width: 11.9, Height: 10.45)
 	table.insert(fs, th.voxel_box(0.35, 1.30, 11.9, 10.45, th.colors.card_bg))
 
-	-- Header Bar Background
-	table.insert(fs, string.format("box[0.45,1.35;11.6,0.44;%s]", th.colors.header_bar_bg))
+	local vp = th.get_viewport_info()
+	local is_compact = vp.is_compact
 
 	-- Interactive Clickable Column Header Buttons with Direction Arrows
 	local sort_col = st.server_sort_col or "players"
 	local sort_dir = st.server_sort_dir or "desc"
-	local arrow = (sort_dir == "asc") and " ▲" or " ▼"
 
-	local function make_header_button(x, w, col_id, base_title, tooltip_text)
-		local is_active = (sort_col == col_id)
-		local title = base_title .. (is_active and arrow or "")
-		local btn_name = "btn_sort_" .. col_id
+	local cols = ui_list.get_columns("online", is_compact)
+	ui_list.render_header(fs, {
+		x = 0.45,
+		y = 1.35,
+		w = 11.60,
+		h = 0.44,
+		columns = cols,
+		sort_col = sort_col,
+		sort_dir = sort_dir,
+		btn_prefix = "btn_sort_",
+		th = th,
+	})
 
-		-- Hover and pressed styling on the transparent clickable header button
-		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", btn_name))
-		table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=#3e6c9c33]", btn_name))
-		table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=#1d365044]", btn_name))
-		table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", btn_name))
+	local scroll_val = tonumber(st.get("servers_scroll") or 0) or 0
+	ui_list.render_scroll_start(fs, 0.45, 1.85, 11.25, 9.75, "servers_scroll", 0.1, 0.25)
 
-		table.insert(fs, string.format("button[%.2f,1.35;%.2f,0.44;%s;]", x, w, btn_name))
-		table.insert(fs, th.tooltip(btn_name, tooltip_text))
+	local srv_cur_y = 0.0
+	local srv_row_w = 11.25
+	local row_h = 0.48
+	local div_h = 0.40
 
-		if is_active then
-			table.insert(fs, string.format("box[%.2f,1.75;%.2f,0.03;%s]", x, w, th.colors.brand_green_hover))
-		end
-
-		local text_color = is_active and th.colors.brand_green_hover or th.colors.text_muted
-		table.insert(fs, string.format("style_type[label;font=bold;font_size=+0;textcolor=%s]", text_color))
-		table.insert(fs, string.format("label[%.2f,1.57;%s]", x + 0.05, core.formspec_escape(title)))
-	end
-
-	local vp = th.get_viewport_info()
-	local is_compact = vp.is_compact
-
-	if is_compact then
-		-- 4 Clean full-width headers on compact screens (Total width: 1.15 + 1.45 + 1.00 + 8.00 = 11.60)
-		make_header_button(0.45, 1.15, "ping", fgettext("Ping"), fgettext("Sort by Latency (Ping)"))
-		make_header_button(1.60, 1.45, "players", fgettext("Players"), fgettext("Sort by Online Players"))
-		make_header_button(3.05, 1.00, "flags", fgettext("Flags"), fgettext("Sort by Gameplay Flags (Creative / PvP)"))
-		make_header_button(4.05, 8.00, "name", fgettext("Server Name"), fgettext("Sort alphabetically by Server Name"))
-	else
-		-- 6 Clean full-width headers on desktop screens (Total width: 1.05 + 1.10 + 1.10 + 0.80 + 0.90 + 6.65 = 11.60)
-		make_header_button(0.45, 1.05, "ping", fgettext("Ping"), fgettext("Sort by Latency (Ping)"))
-		make_header_button(1.50, 1.10, "players", fgettext("Players"), fgettext("Sort by Online Players"))
-		make_header_button(2.60, 1.10, "version", fgettext("Version"), fgettext("Sort by Engine Version"))
-		make_header_button(3.70, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Active Mods Count (- indicates 0 reported or vanilla)"))
-		make_header_button(4.50, 0.90, "flags", fgettext("Flags"), fgettext("Sort by Gameplay Flags (Creative / PvP)"))
-		make_header_button(5.40, 6.65, "name", fgettext("Server Name"), fgettext("Sort alphabetically by Server Name"))
-	end
-
-	-- Modern translucent table options and styling for server table (font_size=+0 synchronizes table cell em metrics with header labels)
-	table.insert(fs, th.tableoptions())
-	table.insert(fs, "style[servers;font=normal;font_size=+0]")
-
-	local ping_icon_defs =
-		"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-		"1=" .. core.formspec_escape(defaulttexturedir .. "server_ping_4.png") .. "," ..
-		"2=" .. core.formspec_escape(defaulttexturedir .. "server_ping_3.png") .. "," ..
-		"3=" .. core.formspec_escape(defaulttexturedir .. "server_ping_2.png") .. "," ..
-		"4=" .. core.formspec_escape(defaulttexturedir .. "server_ping_1.png") .. "," ..
-		"5=" .. core.formspec_escape(defaulttexturedir .. "server_favorite.png") .. "," ..
-		"6=" .. core.formspec_escape(defaulttexturedir .. "server_public.png") .. "," ..
-		"7=" .. core.formspec_escape(defaulttexturedir .. "server_incompatible.png") .. ","
-
-	local epu = th.get_em_per_unit()
-
-	if is_compact then
-		local ping_img_w = string.format("%.2f", math.max(0.6, 0.30 * epu))
-		local ping_txt_w = string.format("%.2f", math.max(1.5, (1.15 - 0.30) * epu))
-		local players_w  = string.format("%.2f", math.max(2.0, 1.45 * epu))
-		local flags1_w   = string.format("%.2f", math.max(0.8, 0.45 * epu))
-		local flags2_w   = string.format("%.2f", math.max(0.8, (1.00 - 0.45) * epu))
-
-		-- Define 9 enriched table columns precisely aligned with compact headers
-		table.insert(fs, "tablecolumns[" ..
-			"image," .. ping_icon_defs ..
-			"align=inline,padding=0.15,width=" .. ping_img_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.15,width=" .. ping_txt_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. players_w .. ";" ..
-			"image," ..
-			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_creative.png") .. "," ..
-			"align=inline,padding=0.20,width=" .. flags1_w .. ";" ..
-			"image," ..
-			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_damage.png") .. "," ..
-			"2=" .. core.formspec_escape(defaulttexturedir .. "server_flags_pvp.png") .. "," ..
-			"align=left,padding=0.20,width=" .. flags2_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.25]")
-	else
-		local ping_img_w = string.format("%.2f", math.max(0.6, 0.30 * epu))
-		local ping_txt_w = string.format("%.2f", math.max(1.5, (1.05 - 0.30) * epu))
-		local players_w  = string.format("%.2f", math.max(2.0, 1.10 * epu))
-		local version_w  = string.format("%.2f", math.max(2.0, 1.10 * epu))
-		local mods_w     = string.format("%.2f", math.max(1.5, 0.80 * epu))
-		local flags1_w   = string.format("%.2f", math.max(0.8, 0.40 * epu))
-		local flags2_w   = string.format("%.2f", math.max(0.8, (0.90 - 0.40) * epu))
-
-		-- Define 13 enriched table columns with fixed aligned widths matching desktop headers
-		table.insert(fs, "tablecolumns[" ..
-			"image," .. ping_icon_defs ..
-			"align=inline,padding=0.15,width=" .. ping_img_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.15,width=" .. ping_txt_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. players_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. version_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
-			"image," ..
-			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_creative.png") .. "," ..
-			"align=inline,padding=0.20,width=" .. flags1_w .. ";" ..
-			"image," ..
-			"0=" .. core.formspec_escape(defaulttexturedir .. "blank.png") .. "," ..
-			"1=" .. core.formspec_escape(defaulttexturedir .. "server_flags_damage.png") .. "," ..
-			"2=" .. core.formspec_escape(defaulttexturedir .. "server_flags_pvp.png") .. "," ..
-			"align=left,padding=0.20,width=" .. flags2_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.25]")
-	end
-
-	-- Populate Table Rows
-	local rows = {}
 	menudata.server_lookup = {}
-	local selected_row = 1
+	local rendered_count = 0
+	local display_limit = tonumber(st.get("servers_display_limit") or 60) or 60
+	local total_matching_servers = #servers.fav + #servers.public + #servers.incompatible
 
 	local sections = {
-		{ id = "fav",          icon = "5", color = th.colors.warn_gold,   title = fgettext("Favorites") },
-		{ id = "public",       icon = "6", color = th.colors.brand_green, title = fgettext("Public Servers") },
-		{ id = "incompatible", icon = "7", color = th.colors.text_muted,  title = fgettext("Incompatible Servers") },
+		{ id = "fav",          icon = defaulttexturedir .. "server_favorite.png", color = th.colors.warn_gold,   title = fgettext("Favorites") },
+		{ id = "public",       icon = defaulttexturedir .. "server_public.png", color = th.colors.brand_green, title = fgettext("Public Servers") },
+		{ id = "incompatible", icon = defaulttexturedir .. "server_incompatible.png", color = th.colors.text_muted,  title = fgettext("Incompatible Servers") },
 	}
 
 	for _, sec in ipairs(sections) do
 		local list = servers[sec.id]
-		if list and #list > 0 then
-			table.insert(rows, make_divider_row(sec.icon, sec.color, sec.title, is_compact))
+		if list and #list > 0 and rendered_count < display_limit then
+			ui_list.render_section_divider(fs, srv_cur_y, srv_row_w, div_h, sec.title, sec.icon, sec.color, th)
+			srv_cur_y = srv_cur_y + div_h
+
 			for _, srv in ipairs(list) do
-				table.insert(rows, render_enriched_serverlist_row(srv, th, is_compact))
-				local row_idx = #rows
-				menudata.server_lookup[row_idx] = srv
-				if selected_server and srv.address == selected_server.address and srv.port == selected_server.port then
-					selected_row = row_idx
+				if rendered_count >= display_limit then
+					break
 				end
+				rendered_count = rendered_count + 1
+				local r_idx = rendered_count
+				menudata.server_lookup[r_idx] = srv
+
+				local is_selected = false
+				if selected_server and srv.address == selected_server.address and srv.port == selected_server.port then
+					is_selected = true
+				end
+
+				local cells = build_server_cells(srv, th, is_compact, is_selected)
+				local tip_title = srv.name or srv.address or ""
+				local tip_desc = srv.description or ""
+				local tip_text = tip_title
+				if tip_desc ~= "" then
+					tip_text = tip_text .. "\n" .. tip_desc:sub(1, 120)
+				end
+
+				ui_list.render_row(fs, {
+					y = srv_cur_y,
+					w = srv_row_w,
+					h = row_h,
+					btn_name = "btn_server_row_" .. r_idx,
+					is_selected = is_selected,
+					is_even = (r_idx % 2 == 0),
+					tooltip = tip_text,
+					th = th,
+					cells = cells,
+				})
+
+				srv_cur_y = srv_cur_y + row_h
 			end
 		end
 	end
 
-	local total_count = #servers.fav + #servers.public + #servers.incompatible
-	if total_count == 0 then
+	if total_matching_servers == 0 then
 		local q_text = safe_trim(st.server_search_query or "")
-		local empty_msg
-		if q_text ~= "" then
-			empty_msg = fgettext("No servers matching '$1'", q_text)
-		else
-			empty_msg = fgettext("No servers available")
-		end
-		table.insert(rows, make_divider_row("0", th.colors.text_muted, empty_msg, is_compact))
+		local empty_msg = (q_text ~= "") and fgettext("No servers matching '$1'", q_text:sub(1, 20)) or fgettext("No servers available")
+		ui_list.render_empty(fs, 0.0, srv_row_w, 9.75, empty_msg, (q_text ~= "") and "btn_srv_clear", th)
+		srv_cur_y = 4.0
+	elseif rendered_count < total_matching_servers then
+		-- Render "Show More" button row at bottom
+		local remaining = total_matching_servers - rendered_count
+		local more_text = string.format("%s (%d %s)", fgettext("Show More Servers"), remaining, fgettext("remaining"))
+		table.insert(fs, th.button_secondary(srv_row_w * 0.2, srv_cur_y + 0.15, srv_row_w * 0.6, 0.55, "btn_servers_show_more", more_text, fgettext("Load additional servers into list")))
+		srv_cur_y = srv_cur_y + 0.85
 	end
 
-	table.insert(fs, string.format("table[0.45,1.85;11.6,9.75;servers;%s;%d]", table.concat(rows, ","), selected_row))
-
-	-- Column Cell Tooltips with unified modern styling matching the rest of the UI (translucent obsidian slate)
-	if is_compact then
-		table.insert(fs, th.tooltip_area(0.45, 1.85, 1.15, 9.75, fgettext("Ping: Connection latency indicator (lower ms is better)")))
-		table.insert(fs, th.tooltip_area(1.60, 1.85, 1.45, 9.75, fgettext("Players: Active online players / Server player capacity")))
-		table.insert(fs, th.tooltip_area(3.05, 1.85, 1.00, 9.75, fgettext("Gameplay Rules: Creative mode and Damage / PvP status")))
-		table.insert(fs, th.tooltip_area(4.05, 1.85, 8.00, 9.75, fgettext("Server Name: Select server to view full title - description - address and details")))
-	else
-		table.insert(fs, th.tooltip_area(0.45, 1.85, 1.05, 9.75, fgettext("Ping: Connection latency indicator (lower ms is better)")))
-		table.insert(fs, th.tooltip_area(1.50, 1.85, 1.10, 9.75, fgettext("Players: Active online players / Server player capacity")))
-		table.insert(fs, th.tooltip_area(2.60, 1.85, 1.10, 9.75, fgettext("Engine Version: Luanti server release and protocol version")))
-		table.insert(fs, th.tooltip_area(3.70, 1.85, 0.80, 9.75, fgettext("Active Mods: Count of reported mods (- indicates 0 reported or vanilla)")))
-		table.insert(fs, th.tooltip_area(4.50, 1.85, 0.90, 9.75, fgettext("Gameplay Rules: Creative mode and Damage / PvP status")))
-		table.insert(fs, th.tooltip_area(5.40, 1.85, 6.65, 9.75, fgettext("Server Name: Select server to view full title - description - address and details")))
-	end
+	ui_list.render_scroll_end(fs, {
+		visible_h = 9.75,
+		total_h = srv_cur_y,
+		scroll_val = scroll_val,
+		bar_x = 11.75,
+		bar_y = 1.85,
+		bar_w = 0.25,
+		bar_h = 9.75,
+		scroll_name = "servers_scroll",
+		scroll_factor = 0.1,
+	})
 
 	----------------------------------------------------------------------------
 	-- Right Panel: Selected Server Information & Connect Deck (Width: 5.60, Height: 10.45)
@@ -1110,17 +959,13 @@ function view_online.render(st, th)
 			local game_title
 			if raw_gameid and raw_gameid ~= "" then
 				local pkg = (pkgmgr and pkgmgr.find_by_gameid and pkgmgr.find_by_gameid(raw_gameid))
-				if pkg and pkg.title and pkg.title ~= "" and pkg.title:lower() ~= raw_gameid:lower() then
-					game_title = string.format("%s (%s)", pkg.title, raw_gameid)
-				else
-					game_title = (pkg and pkg.title) or raw_gameid
-				end
+				game_title = (pkg and pkg.title and pkg.title ~= "") and pkg.title or raw_gameid
 			elseif sel_local_type then
-				game_title = fgettext("Local Server / Engine Default")
+				game_title = fgettext("Local Server")
 			else
-				game_title = fgettext("Not announced (Vanilla / Custom)")
+				game_title = fgettext("Not announced")
 			end
-			local disp_game_title = truncate_str(game_title, 24)
+			local disp_game_title = truncate_str(game_title, 16)
 
 			-- 2. Engine Version Resolution
 			local ver_str = selected_server.version
@@ -1129,23 +974,27 @@ function view_online.render(st, th)
 				ver_str = (v and v.string) or fgettext("Luanti")
 			end
 			ver_str = (ver_str and ver_str ~= "") and ver_str or fgettext("Luanti")
-			local disp_ver = truncate_str(ver_str, 16)
+			local disp_ver = truncate_str(ver_str, 12)
 
 			-- Top Highlight Banner: Base Game & Engine Version
-			table.insert(fs, string.format("box[12.65,4.58;5.10,0.62;#1e293b77]"))
+			table.insert(fs, string.format("box[12.65,4.58;5.10,0.62;%s]", th.colors.subheader_bg))
 			table.insert(fs, string.format("box[12.65,4.58;0.05,0.62;%s]", th.colors.brand_green_hover))
 
 			table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
 			table.insert(fs, string.format("label[12.80,4.73;%s]", core.formspec_escape(fgettext("BASE GAME"))))
 			table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("body"), th.colors.brand_green_hover))
 			table.insert(fs, string.format("label[12.80,4.98;%s]", core.formspec_escape(disp_game_title)))
-			table.insert(fs, th.tooltip_area(12.65, 4.58, 2.90, 0.62, fgettext("Server Base Game: $1", game_title)))
+			local base_game_tip = fgettext("Server Base Game: $1", game_title)
+			if raw_gameid and raw_gameid ~= "" and raw_gameid:lower() ~= game_title:lower() then
+				base_game_tip = base_game_tip .. "\nID: " .. raw_gameid
+			end
+			table.insert(fs, th.tooltip_area(12.65, 4.58, 2.90, 0.62, base_game_tip))
 
 			table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
-			table.insert(fs, string.format("label[15.80,4.73;%s]", core.formspec_escape(fgettext("ENGINE VERSION"))))
+			table.insert(fs, string.format("label[15.60,4.73;%s]", core.formspec_escape(fgettext("ENGINE VERSION"))))
 			table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("body"), th.colors.text_primary))
-			table.insert(fs, string.format("label[15.80,4.98;%s]", core.formspec_escape(disp_ver)))
-			table.insert(fs, th.tooltip_area(15.70, 4.58, 2.05, 0.62, fgettext("Server Engine Version: $1", ver_str)))
+			table.insert(fs, string.format("label[15.60,4.98;%s]", core.formspec_escape(disp_ver)))
+			table.insert(fs, th.tooltip_area(15.50, 4.58, 2.25, 0.62, fgettext("Server Engine Version: $1", ver_str)))
 
 			-- 3. Specs & Rules Grid (2 Columns)
 			table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("body"), th.colors.text_secondary))
@@ -1260,7 +1109,7 @@ function view_online.render(st, th)
 				compat_msg = fgettext("⚠ Protocol mismatch: client may be incompatible")
 				compat_col = th.colors.warn_gold
 			elseif sel_local_type then
-				compat_msg = fgettext("✓ Protocol compatible (Local client & engine)")
+				compat_msg = fgettext("✓ Protocol compatible (Local)")
 				compat_col = th.colors.brand_green_hover
 			else
 				compat_msg = fgettext("✓ Protocol compatible with this client")
@@ -1347,7 +1196,7 @@ function view_online.render(st, th)
 
 							if is_expanded and pkg then
 								-- Expanded Card
-								table.insert(fs, string.format("box[0.00,%.2f;%.2f,1.60;#0f172acc]", cur_y, row_w))
+								table.insert(fs, string.format("box[0.00,%.2f;%.2f,1.60;%s]", cur_y, row_w, th.colors.card_expanded_bg))
 								table.insert(fs, string.format("box[0.00,%.2f;0.06,1.60;%s]", cur_y, th.colors.brand_green_hover))
 
 								-- Collapse toggle button [-]
@@ -1357,12 +1206,13 @@ function view_online.render(st, th)
 								table.insert(fs, string.format("tooltip[btn_mod_exp_%d;%s]", i, core.formspec_escape(fgettext("Collapse details"))))
 
 								-- Mod technical name & ContentDB badge
-								local disp_name = truncate_str(mod_name, 18)
+								local disp_name = truncate_str(mod_name, 15)
 								table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_primary))
 								table.insert(fs, string.format("label[0.50,%.2f;%s]", cur_y + 0.18, core.formspec_escape(disp_name)))
 
+								table.insert(fs, string.format("box[3.00,%.2f;1.30,0.26;%s]", cur_y + 0.06, th.colors.badge_contentdb_bg))
 								table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.brand_green_hover))
-								table.insert(fs, string.format("label[3.20,%.2f;%s]", cur_y + 0.18, core.formspec_escape("[ContentDB]")))
+								table.insert(fs, string.format("label[3.08,%.2f;%s]", cur_y + 0.18, core.formspec_escape("ContentDB")))
 
 								-- Title and author
 								local title_str = pkg.title or mod_name
@@ -1394,7 +1244,7 @@ function view_online.render(st, th)
 								cur_y = cur_y + 1.68
 							else
 								-- Collapsed Row
-								local bg_col = pkg and "#1e293b77" or "#11182744"
+								local bg_col = pkg and th.colors.subheader_bg or th.colors.card_item_bg
 								table.insert(fs, string.format("box[0.00,%.2f;%.2f,0.40;%s]", cur_y, row_w, bg_col))
 
 								if pkg then
@@ -1404,12 +1254,13 @@ function view_online.render(st, th)
 									table.insert(fs, string.format("button[0.06,%.2f;0.34,0.30;btn_mod_exp_%d;+]", cur_y + 0.05, i))
 									table.insert(fs, string.format("tooltip[btn_mod_exp_%d;%s]", i, core.formspec_escape(fgettext("Expand ContentDB details"))))
 
-									local disp_name = truncate_str(mod_name, 19)
+									local disp_name = truncate_str(mod_name, 15)
 									table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_primary))
 									table.insert(fs, string.format("label[0.48,%.2f;%s]", cur_y + 0.20, core.formspec_escape(disp_name)))
 
+									table.insert(fs, string.format("box[3.00,%.2f;1.30,0.26;%s]", cur_y + 0.07, th.colors.badge_contentdb_bg))
 									table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.brand_green_hover))
-									table.insert(fs, string.format("label[3.20,%.2f;%s]", cur_y + 0.20, core.formspec_escape("[ContentDB]")))
+									table.insert(fs, string.format("label[3.08,%.2f;%s]", cur_y + 0.20, core.formspec_escape("ContentDB")))
 								else
 									-- Non-CDB mod: direct search button [🔍]
 									table.insert(fs, string.format("style[btn_cdb_search_%d;border=false;bgcolor=%s;textcolor=%s;font=normal;%s]",
@@ -1417,12 +1268,13 @@ function view_online.render(st, th)
 									table.insert(fs, string.format("button[0.06,%.2f;0.34,0.30;btn_cdb_search_%d;🔍]", cur_y + 0.05, i))
 									table.insert(fs, string.format("tooltip[btn_cdb_search_%d;%s]", i, core.formspec_escape(fgettext("Search ContentDB for mod"))))
 
-									local disp_name = truncate_str(mod_name, 22)
+									local disp_name = truncate_str(mod_name, 17)
 									table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_secondary))
 									table.insert(fs, string.format("label[0.48,%.2f;%s]", cur_y + 0.20, core.formspec_escape(disp_name)))
 
+									table.insert(fs, string.format("box[3.30,%.2f;0.95,0.26;%s]", cur_y + 0.07, th.colors.badge_server_bg))
 									table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
-									table.insert(fs, string.format("label[3.55,%.2f;%s]", cur_y + 0.20, core.formspec_escape("(Server)")))
+									table.insert(fs, string.format("label[3.36,%.2f;%s]", cur_y + 0.20, core.formspec_escape(fgettext("Server"))))
 								end
 
 								cur_y = cur_y + 0.46
@@ -1555,7 +1407,7 @@ function view_online.render(st, th)
 					local s_addr = tostring(selected_server.address or "")
 					raw_desc = fgettext("[Local Area Network (LAN) Server • $1]\n\nThis server is hosted on your local network / Wi-Fi.\n• High-speed local network connection.\n• Joinable by any device on the same local subnet.\n• Private to your local network (no port forwarding required).", s_addr)
 				else
-					raw_desc = format_raw_text("No description available.")
+					raw_desc = fgettext("No description available.")
 				end
 			else
 				raw_desc = unescape_formspec_text(raw_desc)

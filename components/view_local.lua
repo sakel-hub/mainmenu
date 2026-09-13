@@ -3,6 +3,8 @@
 
 local view_local = {}
 
+local ui_list = dofile(custom_menupath .. DIR_DELIM .. "components" .. DIR_DELIM .. "ui_list.lua")
+
 local world_info_cache = {}
 
 function view_local.clear_cache(world_path)
@@ -72,21 +74,7 @@ local function get_file_mtime(path)
 end
 
 local function format_last_played(ts)
-	if not ts or ts <= 0 then return "-" end
-	local now = os.time()
-	local diff = now - ts
-	if diff < 0 then
-		return os.date("%Y-%m-%d", ts)
-	elseif diff < 86400 and os.date("%Y-%m-%d", now) == os.date("%Y-%m-%d", ts) then
-		return fgettext("Today")
-	elseif diff < 86400 * 2 then
-		return fgettext("Yesterday")
-	elseif diff < 86400 * 7 then
-		local days = math.floor(diff / 86400)
-		return string.format(fgettext("%dd ago"), days)
-	else
-		return os.date("%Y-%m-%d", ts)
-	end
+	return ui_list.format_last_played(ts)
 end
 
 local function get_play_time(world_path)
@@ -199,6 +187,7 @@ local function get_world_info(world)
 		info.last_played_ts = mt
 	end
 	info.last_played_str = format_last_played(info.last_played_ts)
+	info.last_played_full = ui_list.format_timestamp_full(info.last_played_ts)
 
 	-- In-game total play time
 	info.play_time_secs = get_play_time(world.path)
@@ -367,7 +356,7 @@ function view_local.render(st, th)
 		local is_active = (game.id == current_game_id)
 		local btn_name = "game_select_" .. game.id
 		local title = game.title or game.id
-		table.insert(fs, th.button_tab(game_x, 0.38, 1.70, 0.65, btn_name, title:sub(1, 13), is_active, title))
+		table.insert(fs, th.button_tab(game_x, 0.38, 1.70, 0.65, btn_name, ui_list.truncate(title, 9), is_active, title))
 		game_x = game_x + 1.85
 	end
 
@@ -383,30 +372,22 @@ function view_local.render(st, th)
 	-- Main Split Area: Left = Worlds List, Right = Details & Launch
 	----------------------------------------------------------------------------
 
-	-- Dynamic icon index mapping for game logos in the world table
-	local icon_map = {}
-	local icon_defs = { "0=" .. core.formspec_escape((defaulttexturedir or "") .. "blank.png") }
-	local icon_counter = 1
-	for _, g in ipairs(pkgmgr.games or {}) do
-		local icon = (g.menuicon_path ~= "" and g.menuicon_path) or (g.icon_path ~= "" and g.icon_path)
-		if icon then
-			icon_map[g.id] = tostring(icon_counter)
-			table.insert(icon_defs, string.format("%d=%s", icon_counter, core.formspec_escape(icon)))
-			icon_counter = icon_counter + 1
-		end
-	end
-
 	-- Filter world list based on active game and search query
 	local filtered_worlds = {}
+	local c_gid = nil
+	local g_obj = nil
+	if current_game_id and current_game_id ~= "" then
+		c_gid = (pkgmgr and pkgmgr.normalize_game_id and pkgmgr.normalize_game_id(current_game_id)) or current_game_id
+		g_obj = (pkgmgr and pkgmgr.find_by_gameid and pkgmgr.find_by_gameid(c_gid))
+	end
+
 	for orig_idx, w in ipairs(raw_worldlist) do
 		local matches = true
 
 		-- Ensure world belongs to selected game (or its aliases)
-		if current_game_id and current_game_id ~= "" then
+		if c_gid then
 			local w_gid = (pkgmgr and pkgmgr.normalize_game_id and pkgmgr.normalize_game_id(w.gameid)) or (w.gameid or "")
-			local c_gid = (pkgmgr and pkgmgr.normalize_game_id and pkgmgr.normalize_game_id(current_game_id)) or current_game_id
 			if w_gid ~= c_gid then
-				local g_obj = (pkgmgr and pkgmgr.find_by_gameid and pkgmgr.find_by_gameid(c_gid))
 				if not (g_obj and g_obj.aliases and g_obj.aliases[w_gid]) then
 					matches = false
 				end
@@ -436,8 +417,8 @@ function view_local.render(st, th)
 	end
 
 	-- Apply sorting
-	local sort_col = st.world_sort_col or "name"
-	local sort_dir = st.world_sort_dir or "asc"
+	local sort_col = (st.get and st.get("world_sort_col")) or st.world_sort_col or "name"
+	local sort_dir = (st.get and st.get("world_sort_dir")) or st.world_sort_dir or "asc"
 	table.sort(filtered_worlds, function(a, b)
 		return compare_worlds(a, b, sort_col, sort_dir)
 	end)
@@ -472,228 +453,95 @@ function view_local.render(st, th)
 	-- Left Panel: World List (Width: 11.9, Height: 10.45, matching Play Online)
 	table.insert(fs, th.voxel_box(0.35, 1.30, 11.9, 10.45, th.colors.card_bg))
 
-	-- Header Bar Background matching Play Online
-	table.insert(fs, string.format("box[0.45,1.35;11.6,0.44;%s]", th.colors.header_bar_bg))
-
-	-- Interactive Clickable Column Header Buttons with Direction Arrows
-	local arrow = (sort_dir == "asc") and " ▲" or " ▼"
-
-	local function make_world_header_button(x, w, col_id, base_title, tooltip_text)
-		local is_active = (sort_col == col_id)
-		local title = base_title .. (is_active and arrow or "")
-		local btn_name = "btn_sort_world_" .. col_id
-
-		-- Hover and pressed styling on the transparent clickable header button
-		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", btn_name))
-		table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=#3e6c9c33]", btn_name))
-		table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=#1d365044]", btn_name))
-		table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", btn_name))
-
-		-- Render empty button to receive clicks and show hover highlight
-		table.insert(fs, string.format("button[%.2f,1.35;%.2f,0.44;%s;]", x, w, btn_name))
-		table.insert(fs, th.tooltip(btn_name, tooltip_text))
-
-		if is_active then
-			table.insert(fs, string.format("box[%.2f,1.75;%.2f,0.03;%s]", x, w, th.colors.brand_green_hover))
-		end
-
-		-- Overlay clickthrough label for strictly left-aligned header text matching Play Online
-		local text_color = is_active and th.colors.brand_green_hover or th.colors.text_muted
-		table.insert(fs, string.format("style_type[label;font=bold;font_size=+0;textcolor=%s]", text_color))
-		table.insert(fs, string.format("label[%.2f,1.57;%s]", x + 0.05, core.formspec_escape(title)))
-	end
-
 	local vp = th.get_viewport_info()
 	local is_compact = vp.is_compact
-	local epu = th.get_em_per_unit()
+	local cols = ui_list.get_columns("local", is_compact)
 
-	if is_compact then
-		-- 4 Clean full-width headers on compact screens (Total width: 4.70 + 2.60 + 1.20 + 3.10 = 11.60)
-		make_world_header_button(0.45, 4.70, "name", fgettext("World Name"), fgettext("Sort alphabetically by World Name"))
-		make_world_header_button(5.15, 2.60, "game", fgettext("Game"), fgettext("Sort by Game Title"))
-		make_world_header_button(7.75, 1.20, "mods", fgettext("Mods"), fgettext("Sort by Enabled Custom Mods Count"))
-		make_world_header_button(8.95, 3.10, "last_played", fgettext("Last Played"), fgettext("Sort by Last Played or Modified Date"))
-	else
-		-- 7 Clean full-width headers matching Play Online (Total width: 3.70 + 2.05 + 1.30 + 0.85 + 0.80 + 1.20 + 1.70 = 11.60)
-		make_world_header_button(0.45, 3.70, "name", fgettext("World Name"), fgettext("Sort alphabetically by World Name"))
-		make_world_header_button(4.15, 2.05, "game", fgettext("Game"), fgettext("Sort by Game Title"))
-		make_world_header_button(6.20, 1.30, "mg", fgettext("Mapgen"), fgettext("Sort by Map Generator Algorithm"))
-		make_world_header_button(7.50, 0.85, "version", fgettext("Ver"), fgettext("Sort by Target Engine/Game Version"))
-		make_world_header_button(8.35, 0.80, "mods", fgettext("Mods"), fgettext("Sort by Enabled Custom Mods Count"))
-		make_world_header_button(9.15, 1.20, "size", fgettext("Size"), fgettext("Sort by Total World File Size"))
-		make_world_header_button(10.35, 1.70, "last_played", fgettext("Last Played"), fgettext("Sort by Last Played or Modified Date"))
-	end
+	-- Header Bar with clickable sort buttons
+	ui_list.render_header(fs, {
+		x = 0.45,
+		y = 1.35,
+		w = 11.60,
+		h = 0.44,
+		columns = cols,
+		sort_col = sort_col,
+		sort_dir = sort_dir,
+		btn_prefix = "btn_sort_world_",
+		th = th,
+	})
 
-	-- Modern translucent table options and styling matching Play Online (font_size=+0 synchronizes table cell em metrics with header labels)
-	table.insert(fs, th.tableoptions())
-	table.insert(fs, "style[sp_worlds;font=normal;font_size=+0]")
+	-- Scrollable List Container (Width: 11.25, leaving 0.35 margin for scrollbar at 11.75)
+	local scroll_val = (st.get and st.get("local_worlds_scroll")) or st.local_worlds_scroll or 0
+	ui_list.render_scroll_start(fs, 0.45, 1.85, 11.25, 9.75, "local_worlds_scroll", 0.1, 0.25)
 
-	if is_compact then
-		local icon_w = string.format("%.2f", math.max(0.8, 0.30 * epu))
-		local name_w = string.format("%.2f", math.max(2.0, (4.70 - 0.30) * epu))
-		local game_w = string.format("%.2f", math.max(2.0, 2.60 * epu))
-		local mods_w = string.format("%.2f", math.max(1.5, 1.20 * epu))
+	local cur_y = 0.0
+	local row_w = 11.25
+	local row_h = 0.48
 
-		-- Define 9 enriched table columns precisely aligned with compact headers
-		table.insert(fs, "tablecolumns[" ..
-			"image," .. table.concat(icon_defs, ",") .. "," ..
-			"align=inline,padding=0.15,width=" .. icon_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.15,width=" .. name_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. game_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20]"
-		)
-	else
-		local icon_w = string.format("%.2f", math.max(0.8, 0.30 * epu))
-		local name_w = string.format("%.2f", math.max(2.0, (3.70 - 0.30) * epu))
-		local game_w = string.format("%.2f", math.max(2.0, 2.05 * epu))
-		local mg_w   = string.format("%.2f", math.max(1.5, 1.30 * epu))
-		local ver_w  = string.format("%.2f", math.max(1.0, 0.85 * epu))
-		local mods_w = string.format("%.2f", math.max(1.0, 0.80 * epu))
-		local size_w = string.format("%.2f", math.max(1.5, 1.20 * epu))
-
-		-- Define 15 enriched table columns precisely aligned with desktop headers (left-aligned with proportional column widths)
-		table.insert(fs, "tablecolumns[" ..
-			"image," .. table.concat(icon_defs, ",") .. "," ..
-			"align=inline,padding=0.15,width=" .. icon_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.15,width=" .. name_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. game_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. mg_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. ver_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. mods_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20,width=" .. size_w .. ";" ..
-			"color,span=1;" ..
-			"text,align=left,padding=0.20]"
-		)
-	end
-
-	-- Populate Table Rows
-	local rows = {}
 	menudata.world_lookup = {}
 
 	if #filtered_worlds > 0 then
 		for r_idx, w in ipairs(filtered_worlds) do
+			menudata.world_lookup[r_idx] = w
+			local is_selected = (r_idx == selected_filtered_row)
 			local winfo = get_world_info(w)
 			local world_game = pkgmgr.find_by_gameid(w.gameid)
 			local g_title = (world_game and world_game.title) or w.gameid
-			local img_idx = icon_map[w.gameid] or "0"
+			local icon = (world_game and ((world_game.menuicon_path ~= "" and world_game.menuicon_path) or (world_game.icon_path ~= "" and world_game.icon_path))) or (defaulttexturedir .. "blank.png")
 
-			local row_str
+			local cells
 			if is_compact then
-				local display_wname = w.name
-				if #display_wname > 28 then
-					display_wname = display_wname:sub(1, 27) .. "…"
-				end
-				local display_game = g_title
-				if #display_game > 15 then
-					display_game = display_game:sub(1, 14) .. "…"
-				end
-				local mods_color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted)
-				local mods_disp = winfo.mods_str
-				if #mods_disp > 5 then mods_disp = mods_disp:sub(1, 5) end
-				local lp_disp = winfo.last_played_str
-				if #lp_disp > 14 then lp_disp = lp_disp:sub(1, 13) .. "…" end
-
-				row_str = string.format("%s,%s,%s,%s,%s,%s,%s,%s,%s",
-					img_idx,
-					th.colors.text_primary, core.formspec_escape(display_wname),
-					th.colors.brand_green_hover, core.formspec_escape(display_game),
-					mods_color, core.formspec_escape(mods_disp),
-					th.colors.text_primary, core.formspec_escape(lp_disp)
-				)
+				cells = {
+					{ type = "icon", x = 0.00, w = 0.40, texture = icon, icon_w = 0.32, icon_h = 0.32, pad_x = 0.05, pad_y = 0.08, tooltip = g_title },
+					{ type = "text", x = 0.40, w = 4.10, text = w.name, color = is_selected and th.colors.brand_green_hover or th.colors.text_primary, font_weight = "bold", max_chars = 26, pad_x = 0.05, tooltip = string.format("%s\n%s", w.name, winfo.path or "") },
+					{ type = "text", x = 4.50, w = 2.40, text = g_title, color = th.colors.brand_green_hover, font_weight = "normal", max_chars = 15, pad_x = 0.05, tooltip = fgettext("Game: $1", g_title) },
+					{ type = "text", x = 6.90, w = 1.40, text = winfo.mods_str, color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted), font_weight = "bold", max_chars = 7, pad_x = 0.05, tooltip = fgettext("Enabled Mods: $1", winfo.mods_str) },
+					{ type = "text", x = 8.30, w = 2.95, text = winfo.last_played_str, color = th.colors.text_primary, font_weight = "normal", max_chars = 18, pad_x = 0.05, tooltip = fgettext("Last Played: $1", ui_list.format_timestamp_full(w.last_played)) },
+				}
 			else
-				local display_wname = w.name
-				if #display_wname > 20 then
-					display_wname = display_wname:sub(1, 19) .. "…"
-				end
-				local display_game = g_title
-				if #display_game > 12 then
-					display_game = display_game:sub(1, 11) .. "…"
-				end
-				local mg_disp = winfo.mg_name
-				if #mg_disp > 7 then mg_disp = mg_disp:sub(1, 6) .. "…" end
-				local ver_disp = winfo.version
-				if #ver_disp > 5 then ver_disp = ver_disp:sub(1, 5) end
-				local mods_color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted)
-				local mods_disp = winfo.mods_str
-				if #mods_disp > 4 then mods_disp = mods_disp:sub(1, 4) end
-				local size_disp = winfo.size_str
-				if #size_disp > 8 then size_disp = size_disp:sub(1, 8) end
-				local lp_disp = winfo.last_played_str
-				if #lp_disp > 11 then lp_disp = lp_disp:sub(1, 10) .. "…" end
-
-				row_str = string.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
-					img_idx,
-					th.colors.text_primary, core.formspec_escape(display_wname),
-					th.colors.brand_green_hover, core.formspec_escape(display_game),
-					th.colors.text_muted, core.formspec_escape(mg_disp),
-					th.colors.text_muted, core.formspec_escape(ver_disp),
-					mods_color, core.formspec_escape(mods_disp),
-					th.colors.text_muted, core.formspec_escape(size_disp),
-					th.colors.text_primary, core.formspec_escape(lp_disp)
-				)
+				cells = {
+					{ type = "icon", x = 0.00, w = 0.35, texture = icon, icon_w = 0.28, icon_h = 0.28, pad_x = 0.05, pad_y = 0.10, tooltip = g_title },
+					{ type = "text", x = 0.35, w = 2.15, text = w.name, color = is_selected and th.colors.brand_green_hover or th.colors.text_primary, font_weight = "bold", max_chars = 15, pad_x = 0.05, tooltip = string.format("%s\n%s", w.name, winfo.path or "") },
+					{ type = "text", x = 2.50, w = 2.00, text = g_title, color = th.colors.brand_green_hover, font_weight = "normal", max_chars = 14, pad_x = 0.05, tooltip = fgettext("Game: $1", g_title) },
+					{ type = "text", x = 4.50, w = 1.35, text = winfo.mg_name, color = th.colors.text_muted, font_weight = "normal", max_chars = 10, pad_x = 0.05, tooltip = fgettext("Map Generator: $1", winfo.mg_name) },
+					{ type = "text", x = 5.85, w = 0.85, text = winfo.version, color = th.colors.text_muted, font_weight = "normal", max_chars = 7, pad_x = 0.05, tooltip = fgettext("Target Engine: $1", winfo.version) },
+					{ type = "text", x = 6.70, w = 0.90, text = winfo.mods_str, color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted), font_weight = "bold", max_chars = 6, pad_x = 0.05, tooltip = fgettext("Enabled Mods: $1", winfo.mods_str) },
+					{ type = "text", x = 7.60, w = 1.15, text = winfo.size_str, color = th.colors.text_muted, font_weight = "normal", max_chars = 8, pad_x = 0.05, tooltip = fgettext("Disk Size: $1", winfo.size_str) },
+					{ type = "text", x = 8.75, w = 2.50, text = winfo.last_played_str, color = th.colors.text_primary, font_weight = "normal", max_chars = 16, pad_x = 0.05, tooltip = fgettext("Last Played: $1", ui_list.format_timestamp_full(w.last_played)) },
+				}
 			end
-			table.insert(rows, row_str)
-			menudata.world_lookup[r_idx] = w
+
+			ui_list.render_row(fs, {
+				y = cur_y,
+				w = row_w,
+				h = row_h,
+				btn_name = "btn_world_row_" .. r_idx,
+				is_selected = is_selected,
+				is_even = (r_idx % 2 == 0),
+				tooltip = string.format("%s (%s)\n%s: %s", w.name, g_title, fgettext("Last Played"), winfo.last_played_str),
+				th = th,
+				cells = cells,
+			})
+
+			cur_y = cur_y + row_h
 		end
 	else
 		local empty_msg = (query ~= "") and fgettext("No worlds matching '$1'", query:sub(1, 16)) or fgettext("No worlds found")
-		local muted = th.colors.text_muted or "#cbd5e1"
-		local empty_details
-		if is_compact then
-			empty_details = {
-				"0",                             -- 1: icon
-				muted,                           -- 2: color
-				core.formspec_escape(empty_msg), -- 3: text (World Name column)
-				"", "",                          -- 4, 5: Game
-				"", "",                          -- 6, 7: Mods
-				"", "",                          -- 8, 9: Last Played
-			}
-			assert(#empty_details == 9)
-		else
-			empty_details = {
-				"0",                             -- 1: icon
-				muted,                           -- 2: color
-				core.formspec_escape(empty_msg), -- 3: text (World Name column)
-				"", "",                          -- 4, 5: Game
-				"", "",                          -- 6, 7: Mapgen
-				"", "",                          -- 8, 9: Ver
-				"", "",                          -- 10, 11: Mods
-				"", "",                          -- 12, 13: Size
-				"", "",                          -- 14, 15: Last Played
-			}
-			assert(#empty_details == 15)
-		end
-		table.insert(rows, table.concat(empty_details, ","))
+		ui_list.render_empty(fs, 0.0, row_w, 9.75, empty_msg, (query ~= "") and "btn_world_clear", th)
+		cur_y = 4.0
 	end
 
-	table.insert(fs, string.format("table[0.45,1.85;11.6,9.75;sp_worlds;%s;%d]", table.concat(rows, ","), selected_filtered_row))
-
-	-- Column Cell Tooltips with unified modern styling matching the rest of the UI (translucent obsidian slate)
-	if is_compact then
-		table.insert(fs, th.tooltip_area(0.45, 1.85, 4.70, 9.75, fgettext("World Name: Select world to view details and launch")))
-		table.insert(fs, th.tooltip_area(5.15, 1.85, 2.60, 9.75, fgettext("Game: Installed game engine for this world")))
-		table.insert(fs, th.tooltip_area(7.75, 1.85, 1.20, 9.75, fgettext("Mods: Number of enabled custom/world mods")))
-		table.insert(fs, th.tooltip_area(8.95, 1.85, 3.10, 9.75, fgettext("Last Played: Date or relative time when world was last played")))
-	else
-		table.insert(fs, th.tooltip_area(0.45, 1.85, 3.70, 9.75, fgettext("World Name: Select world to view details and launch")))
-		table.insert(fs, th.tooltip_area(4.15, 1.85, 2.05, 9.75, fgettext("Game: Installed game engine for this world")))
-		table.insert(fs, th.tooltip_area(6.20, 1.85, 1.30, 9.75, fgettext("Mapgen: Map generator algorithm and storage backend")))
-		table.insert(fs, th.tooltip_area(7.50, 1.85, 0.85, 9.75, fgettext("Version: Target engine or game version")))
-		table.insert(fs, th.tooltip_area(8.35, 1.85, 0.80, 9.75, fgettext("Mods: Number of enabled custom/world mods")))
-		table.insert(fs, th.tooltip_area(9.15, 1.85, 1.20, 9.75, fgettext("Size: Total world storage size on disk")))
-		table.insert(fs, th.tooltip_area(10.35, 1.85, 1.70, 9.75, fgettext("Last Played: Date or relative time when world was last played")))
-	end
+	ui_list.render_scroll_end(fs, {
+		visible_h = 9.75,
+		total_h = cur_y,
+		scroll_val = scroll_val,
+		bar_x = 11.75,
+		bar_y = 1.85,
+		bar_w = 0.25,
+		bar_h = 9.75,
+		scroll_name = "local_worlds_scroll",
+		scroll_factor = 0.1,
+	})
 
 	----------------------------------------------------------------------------
 	-- Right Panel: World Details & Actions (Width: 5.60, Height: 10.45, matching Play Online)
@@ -711,28 +559,28 @@ function view_local.render(st, th)
 		if #title_display > 24 then
 			title_display = title_display:sub(1, 23) .. "…"
 		end
-		table.insert(fs, string.format("label[12.60,1.55;%s]", core.formspec_escape(title_display)))
+		table.insert(fs, string.format("label[12.60,1.52;%s]", core.formspec_escape(title_display)))
 		table.insert(fs, th.tooltip_area(12.60, 1.35, 5.20, 0.40, winfo.name))
 		table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("body"), th.colors.text_muted))
-		table.insert(fs, string.format("label[12.60,1.88;%s: %s | %s: %s]",
+		table.insert(fs, string.format("label[12.60,1.86;%s: %s | %s: %s]",
 			core.formspec_escape(fgettext("Game")), core.formspec_escape(game_title:sub(1, 15)),
 			core.formspec_escape(fgettext("Ver")), core.formspec_escape(winfo.version)
 		))
-		table.insert(fs, string.format("label[12.60,2.12;%s: %s | %s: %s]",
+		table.insert(fs, string.format("label[12.60,2.16;%s: %s | %s: %s]",
 			core.formspec_escape(fgettext("Mapgen")), core.formspec_escape(winfo.mg_name),
 			core.formspec_escape(fgettext("Storage")), core.formspec_escape(winfo.backend)
 		))
-		table.insert(fs, string.format("label[12.60,2.36;%s: %s | %s: %s]",
+		table.insert(fs, string.format("label[12.60,2.46;%s: %s | %s: %s]",
 			core.formspec_escape(fgettext("Mods")), core.formspec_escape(winfo.mods_str),
 			core.formspec_escape(fgettext("Size")), core.formspec_escape(winfo.size_str)
 		))
 
 		-- World Preview Screenshot or Voxel Card
-		table.insert(fs, th.inner_card(12.60, 2.65, 5.20, 2.80))
+		table.insert(fs, th.inner_card(12.60, 2.75, 5.20, 2.65))
 		if winfo.screenshot then
-			table.insert(fs, string.format("image[12.60,2.65;5.20,2.80;%s]", core.formspec_escape(winfo.screenshot)))
+			table.insert(fs, string.format("image[12.60,2.75;5.20,2.65;%s]", core.formspec_escape(winfo.screenshot)))
 		elseif world_game and (world_game.menuicon_path or "") ~= "" then
-			table.insert(fs, string.format("image[14.20,2.95;2.0,2.0;%s]", core.formspec_escape(world_game.menuicon_path)))
+			table.insert(fs, string.format("image[14.20,3.05;2.0,2.0;%s]", core.formspec_escape(world_game.menuicon_path)))
 		else
 			table.insert(fs, string.format("image[14.20,3.05;2.0,2.0;%s]", core.formspec_escape((defaulttexturedir or "") .. "logo.png")))
 		end
@@ -771,7 +619,7 @@ function view_local.render(st, th)
 			table.insert(fs, string.format("style[te_playername,te_passwd;border=false;textcolor=%s;font=normal;%s]",
 				th.colors.text_primary, th.font_size("body")))
 			table.insert(fs, string.format("style[te_playername:focused,te_passwd:focused;border=false;textcolor=%s;bgcolor=%s;font=normal;%s]",
-				th.colors.text_primary, th.colors.input_bg_focused or "#020712f5", th.font_size("body")))
+				th.colors.text_primary, th.colors.input_bg_focused, th.font_size("body")))
 
 			table.insert(fs, th.text_input(12.60, host_inp_y, 2.50, 0.60, "te_playername", "", st.player_name, is_host_name_focused, fgettext("Your multiplayer player name"), fgettext("Host Name"), "btn_focus_host_name"))
 			table.insert(fs, th.password_input(15.30, host_inp_y, 2.50, 0.60, "te_passwd", "", is_host_pwd_focused, fgettext("Enter server account password"), fgettext("Password"), "btn_focus_host_pwd"))
@@ -811,6 +659,11 @@ function view_local.render(st, th)
 		table.insert(fs, string.format("label[12.60,10.18;%s: %s | %s: %s]",
 			core.formspec_escape(fgettext("Played")), core.formspec_escape(winfo.play_time_str),
 			core.formspec_escape(fgettext("Last")), core.formspec_escape(winfo.last_played_str)
+		))
+		table.insert(fs, th.tooltip_area(12.60, 10.05, 5.20, 0.40,
+			string.format("%s: %s\n%s: %s",
+				fgettext("Total In-Game Time"), winfo.play_time_str,
+				fgettext("Last Played"), winfo.last_played_full or winfo.last_played_str)
 		))
 	else
 		-- Empty State
