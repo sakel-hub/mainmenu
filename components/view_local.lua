@@ -93,7 +93,7 @@ local function get_play_time(world_path)
 end
 
 local function format_play_time(secs)
-	if not secs or secs <= 0 then return "-" end
+	if not secs or secs <= 0 then return "0m" end
 	if secs < 60 then
 		return secs .. "s"
 	elseif secs < 3600 then
@@ -121,9 +121,10 @@ local function get_world_info(world)
 		size_bytes = 0,
 		size_str = "-",
 		last_played_ts = 0,
-		last_played_str = "-",
+		last_played_str = fgettext("Never"),
+		last_played_full = fgettext("Never played"),
 		play_time_secs = 0,
-		play_time_str = "-",
+		play_time_str = "0m",
 		screenshot = nil,
 	}
 
@@ -496,7 +497,19 @@ function view_local.render(st, th)
 					{ type = "text", x = 0.40, w = 4.10, text = w.name, color = is_selected and th.colors.brand_green_hover or th.colors.text_primary, font_weight = "bold", max_chars = 26, pad_x = 0.05, tooltip = string.format("%s\n%s", w.name, winfo.path or "") },
 					{ type = "text", x = 4.50, w = 2.40, text = g_title, color = th.colors.brand_green_hover, font_weight = "normal", max_chars = 15, pad_x = 0.05, tooltip = fgettext("Game: $1", g_title) },
 					{ type = "text", x = 6.90, w = 1.40, text = winfo.mods_str, color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted), font_weight = "bold", max_chars = 7, pad_x = 0.05, tooltip = fgettext("Enabled Mods: $1", winfo.mods_str) },
-					{ type = "text", x = 8.30, w = 2.95, text = winfo.last_played_str, color = th.colors.text_primary, font_weight = "normal", max_chars = 18, pad_x = 0.05, tooltip = fgettext("Last Played: $1", ui_list.format_timestamp_full(w.last_played)) },
+					{
+						type = "text",
+						x = 8.30,
+						w = 2.95,
+						text = winfo.last_played_str,
+						color = th.colors.text_primary,
+						font_weight = "normal",
+						max_chars = 18,
+						pad_x = 0.05,
+						tooltip = (winfo.last_played_ts and winfo.last_played_ts > 0)
+							and fgettext("Last Played: $1", winfo.last_played_full or ui_list.format_timestamp_full(winfo.last_played_ts))
+							or fgettext("Never played"),
+					},
 				}
 			else
 				cells = {
@@ -507,7 +520,19 @@ function view_local.render(st, th)
 					{ type = "text", x = 5.85, w = 0.85, text = winfo.version, color = th.colors.text_muted, font_weight = "normal", max_chars = 7, pad_x = 0.05, tooltip = fgettext("Target Engine: $1", winfo.version) },
 					{ type = "text", x = 6.70, w = 0.90, text = winfo.mods_str, color = (winfo.mods_count > 0 and th.colors.brand_green_hover or th.colors.text_muted), font_weight = "bold", max_chars = 6, pad_x = 0.05, tooltip = fgettext("Enabled Mods: $1", winfo.mods_str) },
 					{ type = "text", x = 7.60, w = 1.15, text = winfo.size_str, color = th.colors.text_muted, font_weight = "normal", max_chars = 8, pad_x = 0.05, tooltip = fgettext("Disk Size: $1", winfo.size_str) },
-					{ type = "text", x = 8.75, w = 2.50, text = winfo.last_played_str, color = th.colors.text_primary, font_weight = "normal", max_chars = 16, pad_x = 0.05, tooltip = fgettext("Last Played: $1", ui_list.format_timestamp_full(w.last_played)) },
+					{
+						type = "text",
+						x = 8.75,
+						w = 2.50,
+						text = winfo.last_played_str,
+						color = th.colors.text_primary,
+						font_weight = "normal",
+						max_chars = 16,
+						pad_x = 0.05,
+						tooltip = (winfo.last_played_ts and winfo.last_played_ts > 0)
+							and fgettext("Last Played: $1", winfo.last_played_full or ui_list.format_timestamp_full(winfo.last_played_ts))
+							or fgettext("Never played"),
+					},
 				}
 			end
 

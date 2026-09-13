@@ -24,7 +24,7 @@ local truncate = ui_list.truncate
 function ui_list.format_last_played(ts)
 	local nts = tonumber(ts)
 	if not nts or nts <= 0 then
-		return "-"
+		return fgettext("Never")
 	end
 	-- Normalize 13-digit millisecond timestamps (e.g. JS epoch) to seconds
 	if nts > 1000000000000 then
@@ -61,7 +61,7 @@ end
 function ui_list.format_timestamp_full(ts)
 	local nts = tonumber(ts)
 	if not nts or nts <= 0 then
-		return "-"
+		return fgettext("Never played")
 	end
 	if nts > 1000000000000 then
 		nts = math.floor(nts / 1000)
