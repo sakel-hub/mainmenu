@@ -22,11 +22,26 @@ theme.colors = {
 	card_active_bg           = "#12302066", -- Active hero/card green-tinted translucent background
 	tile_active_bg           = "#12302099", -- Active metric tile green-tinted background
 	inspector_header_bg      = "#11263888", -- Translucent header bar for inspector sub-views
+	subheader_bg             = "#1e293b77", -- Sub-headers in inspector panels
+	card_expanded_bg         = "#0f172acc", -- Expanded card background for mods and ContentDB
+	card_item_bg             = "#1e293b66", -- Collapsed mod card and server mod row background
+	badge_contentdb_bg       = "#16653455", -- ContentDB translucent badge pill
+	badge_server_bg          = "#1e293b66", -- Server mod badge pill
 
-	-- Tables & Lists Selection Colors
+	-- Tables & Lists Selection & Interaction Colors
 	table_highlight          = "#15803d88", -- Glowing translucent emerald selection highlight
 	table_highlight_text     = "#ffffff",
 	table_highlight_cyan     = "#0284c788", -- Translucent cyan highlight for mod lists
+	list_hover_bg            = "#3e6c9c28", -- Table and list row hover
+	list_pressed_bg          = "#1d365044", -- Table and list row pressed
+	list_row_selected_bg     = "#15803d66", -- Emerald selection highlight for list rows
+	list_row_alternate_bg    = "#0f203022", -- Alternating row background
+
+	-- ContentDB & Package Type Badges
+	badge_txp                = "#c084fc", -- Texture pack purple
+	badge_mod                = "#4ade80", -- Mod emerald green
+	badge_game               = "#fbbf24", -- Game gold
+	badge_modpack            = "#38bdf8", -- Modpack sky cyan
 
 	-- Vibrant Luanti Green Theme Accents
 	brand_green              = "#22c55e", -- Emerald primary accent
@@ -63,6 +78,9 @@ theme.colors = {
 	btn_secondary_hover      = "#16314899", -- Responsive frosted slate-blue hover
 	btn_secondary_pressed    = "#08131e88", -- Soft depressed translucent glass
 	btn_secondary_focus      = "#38bdf8",
+	btn_solid_secondary_bg   = "#334155",   -- Solid high-contrast dialog secondary button
+	btn_solid_secondary_hover= "#475569",   -- Solid dialog secondary button hover
+	btn_solid_secondary_pressed = "#1e293b",-- Solid dialog secondary button pressed
 
 	-- Navigation Pills & Category Filter Buttons (Inactive State)
 	btn_pill_bg              = "#00000000",
@@ -151,13 +169,9 @@ function theme.get_viewport_info()
 	local gui_scaling = (winfo and winfo.real_gui_scaling) or 1.0
 	if gui_scaling <= 0 then gui_scaling = 1.0 end
 
-	-- Normalize max_x / max_y by gui_scaling to get true physical capacity across Retina/HiDPI screens
-	local eff_max_x = max_x * gui_scaling
-	local eff_max_y = max_y * gui_scaling
-
-	-- Base master formspec dimensions: 21.6 x 12.0
-	local scale_x = eff_max_x / 21.6
-	local scale_y = eff_max_y / 12.0
+	-- max_formspec_size is already converted into formspec coordinates by the engine
+	local scale_x = max_x / 21.6
+	local scale_y = max_y / 12.0
 	local scale = math.min(scale_x, scale_y)
 
 	local is_compact = (scale < 1.05) or is_touch
@@ -181,31 +195,6 @@ function theme.get_viewport_info()
 	}
 end
 
--- Dynamically calculate the precise em-per-formspec-unit ratio for table columns across resolutions & DPI scales
-function theme.get_em_per_unit()
-	local winfo = core.get_window_info()
-	local win_w = (winfo and winfo.size and winfo.size.x) or 1920
-	local win_h = (winfo and winfo.size and winfo.size.y) or 1080
-	if win_w <= 0 then win_w = 1920 end
-	if win_h <= 0 then win_h = 1080 end
-
-	-- Master formspec aspect ratio is 21.6 / 12.0 = 1.80
-	local fs_w_px = math.min(win_w, win_h * 1.80)
-	local unit_px = fs_w_px / 21.6
-
-	local gui_scaling = (winfo and winfo.real_gui_scaling) or 1.0
-	if gui_scaling <= 0 then gui_scaling = 1.0 end
-	local em_px = 13.08 * gui_scaling
-
-	local ratio = unit_px / em_px
-	-- Fallback clamp between 1.5 and 6.5 em per unit
-	if ratio < 1.5 then
-		ratio = 1.5
-	elseif ratio > 6.5 then
-		ratio = 6.5
-	end
-	return ratio
-end
 
 -- Proportional typography mapping: guarantees legibility and prevents clipping on small/mobile screens
 function theme.font_size(level)
@@ -295,7 +284,7 @@ end
 
 -- Modern frosted translucent voxel input container (eliminates legacy 3D sunken grey borders)
 function theme.input_box(x, y, w, h, is_focused)
-	local bg = is_focused and (theme.colors.input_bg_focused or "#020712f5") or (theme.colors.input_bg or "#0a172555")
+	local bg = is_focused and theme.colors.input_bg_focused or theme.colors.input_bg
 	local b_light = is_focused and theme.colors.brand_green_hover or theme.colors.card_border_light
 	local b_dark = is_focused and theme.colors.brand_green or theme.colors.card_border_dark
 	local t = is_focused and 0.04 or 0.035 -- crisp voxel edge
@@ -506,17 +495,24 @@ end
 
 -- Secondary action button (translucent slate-blue or solid for dialogs)
 function theme.button_secondary(x, y, w, h, name, label, tooltip, is_solid, custom_font)
+	if type(is_solid) == "string" and not custom_font then
+		custom_font = is_solid
+		is_solid = false
+	end
 	local c = theme.colors
 	local font = custom_font or theme.font_size("button_sub")
 	local fs = {}
 
 	local nx, ny, nw, nh = tonumber(x) or 0, tonumber(y) or 0, tonumber(w) or 0, tonumber(h) or 0
 	if is_solid then
-		table.insert(fs, string.format("style[%s;border=true;bgcolor=#334155;textcolor=%s;font=bold;%s]", name, c.text_secondary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bgcolor=#475569;textcolor=%s;font=bold;%s]", name, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=#334155;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=#475569;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bgcolor=#1e293b;textcolor=%s;font=bold;%s]", name, c.text_muted, font))
+		local s_bg = c.btn_solid_secondary_bg or "#334155"
+		local s_hov = c.btn_solid_secondary_hover or "#475569"
+		local s_pre = c.btn_solid_secondary_pressed or "#1e293b"
+		table.insert(fs, string.format("style[%s;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_bg, c.text_secondary, font))
+		table.insert(fs, string.format("style[%s:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_hov, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, s_bg, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, s_hov, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_pre, c.text_muted, font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]", to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	else
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, c.card_inner_bg, c.card_border_light, c.card_border_dark))
@@ -536,6 +532,10 @@ end
 
 -- Destructive action button (red, translucent voxel button by default matching Settings/Quit)
 function theme.button_danger(x, y, w, h, name, label, tooltip, is_solid, custom_font)
+	if type(is_solid) == "string" and not custom_font then
+		custom_font = is_solid
+		is_solid = false
+	end
 	local c = theme.colors
 	local font = custom_font or theme.font_size("button_danger")
 	local fs = {}
@@ -799,9 +799,9 @@ function theme.dialog_actions(x, y, w, h, cancel_name, cancel_label, confirm_nam
 	}
 	local confirm_x = x + btn_w + gap
 	if is_danger then
-		table.insert(fs, theme.button_danger(confirm_x, y, btn_w, h, confirm_name, confirm_label, nil, custom_font))
+		table.insert(fs, theme.button_danger(confirm_x, y, btn_w, h, confirm_name, confirm_label, nil, true, custom_font))
 	else
-		table.insert(fs, theme.button_primary(confirm_x, y, btn_w, h, confirm_name, confirm_label, nil, custom_font))
+		table.insert(fs, theme.button_primary(confirm_x, y, btn_w, h, confirm_name, confirm_label, nil, true, custom_font))
 	end
 	return table.concat(fs, "")
 end
