@@ -32,21 +32,10 @@ theme.colors = {
 	table_highlight          = "#15803d88", -- Glowing translucent emerald selection highlight
 	table_highlight_text     = "#ffffff",
 	table_highlight_cyan     = "#0284c788", -- Translucent cyan highlight for mod lists
-	list_hover_bg            = "#1e293b55", -- Table and list row subtle hover
-	list_hover_border        = "#38bdf844", -- Table and list row subtle border highlight
+	list_hover_bg            = "#3e6c9c28", -- Table and list row hover
 	list_pressed_bg          = "#1d365044", -- Table and list row pressed
 	list_row_selected_bg     = "#15803d66", -- Emerald selection highlight for list rows
 	list_row_alternate_bg    = "#0f203022", -- Alternating row background
-
-	-- Subtle Interactive Button Hover Tokens (calibrated for delicate, non-aggressive contrast)
-	btn_primary_hover_border   = "#22c55e66", -- Delicate emerald border highlight on hover
-	btn_primary_hover_bg       = "#15803d44", -- Soft translucent emerald glow
-	btn_secondary_hover_border = "#38bdf844", -- Delicate sky-blue border highlight on hover
-	btn_secondary_hover_bg     = "#1e293b55", -- Soft translucent slate-blue fill
-	btn_danger_hover_border    = "#ef444455", -- Soft muted red border highlight on hover
-	btn_danger_hover_bg        = "#450a0a55", -- Soft muted crimson fill
-	btn_tab_hover_border       = "#38bdf833", -- Very subtle tab border on hover
-	btn_tab_hover_bg           = "#1e293b44", -- Soft tab background on hover
 
 	-- ContentDB & Package Type Badges
 	badge_txp                = "#c084fc", -- Texture pack purple
@@ -474,10 +463,10 @@ function theme.button_primary(x, y, w, h, name, label, tooltip, is_solid, custom
 
 	if is_solid then
 		table.insert(fs, string.format("style[%s;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_bg, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_hover_border, c.btn_primary_hover, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_hover, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_focus, c.btn_primary_hover, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_focus, c.btn_primary_hover, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.brand_green_deep, c.btn_primary_pressed, c.btn_primary_pressed_text, font))
+		table.insert(fs, string.format("style[%s:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_primary_pressed, c.btn_primary_pressed_text, font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]", to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	else
 		local bg_color = c.btn_primary_translucent_bg or "#14532d66"
@@ -486,14 +475,14 @@ function theme.button_primary(x, y, w, h, name, label, tooltip, is_solid, custom
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, bg_color, b_light, b_dark))
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]",
 			name, c.text_primary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_primary_hover_border, c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_primary_focus or "#4ade80", c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_primary_focus or "#4ade80", c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.brand_green_dark, c.btn_primary_pressed_text or "#86efac", c.btn_primary_translucent_pressed or "#0d351d99", font))
+		table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_primary, c.btn_primary_translucent_hover or "#16a34a88", font))
+		table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_primary_focus or "#4ade80", c.text_primary, c.btn_primary_translucent_hover or "#16a34a88", font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_primary_focus or "#4ade80", c.text_primary, c.btn_primary_translucent_hover or "#16a34a88", font))
+		table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_primary_pressed_text or "#86efac", c.btn_primary_translucent_pressed or "#0d351d99", font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]",
 			to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	end
@@ -520,7 +509,7 @@ function theme.button_secondary(x, y, w, h, name, label, tooltip, is_solid, cust
 		local s_hov = c.btn_solid_secondary_hover or "#475569"
 		local s_pre = c.btn_solid_secondary_pressed or "#1e293b"
 		table.insert(fs, string.format("style[%s;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_bg, c.text_secondary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_secondary_hover_border, s_hov, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_hov, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, s_bg, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, s_hov, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, s_pre, c.text_muted, font))
@@ -528,10 +517,10 @@ function theme.button_secondary(x, y, w, h, name, label, tooltip, is_solid, cust
 	else
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, c.card_inner_bg, c.card_border_light, c.card_border_dark))
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]", name, c.text_secondary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_hover_border, c.text_primary, c.btn_secondary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.btn_secondary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.btn_secondary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.border_subtle, c.text_muted, c.btn_secondary_pressed, font))
+		table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.text_muted, c.btn_secondary_pressed, font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]", to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	end
 
@@ -554,7 +543,7 @@ function theme.button_danger(x, y, w, h, name, label, tooltip, is_solid, custom_
 
 	if is_solid then
 		table.insert(fs, string.format("style[%s;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_bg, c.btn_danger_text, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_hover_border, c.btn_danger_hover, c.text_primary, font))
+		table.insert(fs, string.format("style[%s:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_hover, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_focus, c.btn_danger_hover, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_focus, c.btn_danger_hover, c.text_primary, font))
 		table.insert(fs, string.format("style[%s:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]", name, c.btn_danger_pressed, c.btn_danger_pressed_text, font))
@@ -566,14 +555,14 @@ function theme.button_danger(x, y, w, h, name, label, tooltip, is_solid, custom_
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, bg_color, b_light, b_dark))
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]",
 			name, c.btn_danger_pressed_text or "#fca5a5", font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_danger_hover_border, c.text_primary, c.btn_danger_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_danger_focus or "#ef4444", c.text_primary, c.btn_danger_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_danger_focus or "#ef4444", c.text_primary, c.btn_danger_hover_bg, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.border_subtle, c.text_muted, c.btn_danger_translucent_pressed or "#22070c99", font))
+		table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_primary, c.btn_danger_translucent_hover or "#4c131b88", font))
+		table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_danger_focus or "#ef4444", c.text_primary, c.btn_danger_translucent_hover or "#4c131b88", font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_danger_focus or "#ef4444", c.text_primary, c.btn_danger_translucent_hover or "#4c131b88", font))
+		table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_muted, c.btn_danger_translucent_pressed or "#22070c99", font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]",
 			to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	end
@@ -593,10 +582,10 @@ function theme.button_url(x, y, w, h, name, label, url, tooltip, custom_font)
 
 	table.insert(fs, theme.voxel_box(nx, ny, nw, nh, c.card_inner_bg, c.card_border_light, c.card_border_dark))
 	table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]", name, c.text_secondary, font))
-	table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_hover_border, c.text_primary, c.btn_secondary_hover_bg, font))
-	table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.btn_secondary_hover_bg, font))
-	table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.btn_secondary_hover_bg, font))
-	table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.border_subtle, c.text_muted, c.btn_secondary_pressed, font))
+	table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.text_primary, c.card_bg_hover, font))
+	table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+	table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+	table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]", name, c.text_muted, c.btn_secondary_pressed, font))
 	table.insert(fs, string.format("button_url[%s,%s;%s,%s;%s;%s;%s]",
 		to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or ""), core.formspec_escape(url or "")))
 
@@ -680,14 +669,14 @@ function theme.button_tab(x, y, w, h, name, label, is_active, tooltip, active_in
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, active_bg, c.brand_green, c.brand_green_dark))
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]",
 			name, c.brand_green_hover or "#4ade80", font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_primary_hover_border, c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_secondary_focus, c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_secondary_focus, c.text_primary, c.btn_primary_hover_bg, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.brand_green_dark, c.text_muted, c.btn_secondary_pressed, font))
+		table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_muted, c.btn_secondary_pressed, font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]",
 			to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 
@@ -700,14 +689,14 @@ function theme.button_tab(x, y, w, h, name, label, is_active, tooltip, active_in
 		table.insert(fs, theme.voxel_box(nx, ny, nw, nh, c.card_inner_bg, c.card_border_light, c.card_border_dark))
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]",
 			name, c.text_secondary, font))
-		table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_tab_hover_border, c.text_primary, c.btn_tab_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_secondary_focus, c.text_primary, c.btn_tab_hover_bg, font))
-		table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.btn_secondary_focus, c.text_primary, c.btn_tab_hover_bg, font))
-		table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
-			name, c.border_subtle, c.text_muted, c.btn_secondary_pressed, font))
+		table.insert(fs, string.format("style[%s:hovered;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.btn_secondary_focus, c.text_primary, c.card_bg_hover, font))
+		table.insert(fs, string.format("style[%s:pressed;border=false;textcolor=%s;bgcolor=%s;font=bold;%s]",
+			name, c.text_muted, c.btn_secondary_pressed, font))
 		table.insert(fs, string.format("button[%s,%s;%s,%s;%s;%s]",
 			to_coord_str(x), to_coord_str(y), to_coord_str(w), to_coord_str(h), name, theme.escape_once(label or "")))
 	end
@@ -731,10 +720,10 @@ function theme.button_icon(x, y, w, h, name, texture_path, tooltip)
 
 	table.insert(fs, theme.voxel_box(nx, ny, nw, nh, c.card_inner_bg, c.card_border_light, c.card_border_dark))
 	table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;sound=ui_click]", name))
-	table.insert(fs, string.format("style[%s:hovered;border=true;bordercolor=%s;bgcolor=%s]", name, c.btn_secondary_hover_border, c.btn_secondary_hover_bg))
-	table.insert(fs, string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s]", name, c.btn_secondary_focus, c.btn_secondary_hover_bg))
-	table.insert(fs, string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s]", name, c.btn_secondary_focus, c.btn_secondary_hover_bg))
-	table.insert(fs, string.format("style[%s:pressed;border=true;bordercolor=%s;bgcolor=%s]", name, c.border_subtle, c.btn_secondary_pressed))
+	table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", name, c.card_bg_hover))
+	table.insert(fs, string.format("style[%s:focused;border=false;bordercolor=%s;bgcolor=%s]", name, c.btn_secondary_focus, c.card_bg_hover))
+	table.insert(fs, string.format("style[%s:focused+hovered;border=false;bordercolor=%s;bgcolor=%s]", name, c.btn_secondary_focus, c.card_bg_hover))
+	table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", name, c.btn_secondary_pressed))
 	table.insert(fs, string.format("image_button[%.2f,%.2f;%.2f,%.2f;%s;%s;]", x, y, w, h, core.formspec_escape(texture_path or ""), name))
 
 	if tooltip and tooltip ~= "" then
