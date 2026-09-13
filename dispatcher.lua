@@ -405,6 +405,23 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 				end
 			end
 			if game then
+				local current_game_id = (st.get and st.get("selected_game_id")) or st.selected_game_id or core.settings:get("menu_last_game")
+				local active_game_obj = nil
+				if current_game_id and pkgmgr and pkgmgr.find_by_gameid then
+					active_game_obj = pkgmgr.find_by_gameid(current_game_id)
+				end
+
+				local is_already_active = (active_game_obj and active_game_obj.id == game.id)
+					or (game.id == current_game_id)
+					or (pkgmgr and pkgmgr.normalize_game_id and current_game_id and
+						pkgmgr.normalize_game_id(game.id) == pkgmgr.normalize_game_id(current_game_id))
+
+				if is_already_active then
+					-- Already active: avoid redundant apply_game, world re-filtering, and theme/music restart
+					st.set("viewing_game_details", nil)
+					return true
+				end
+
 				st.set("selected_game_id", game.id)
 				if apply_game then
 					apply_game(game)
