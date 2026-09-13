@@ -362,6 +362,9 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 			if not fields.btn_srv_mod_clear and fields.te_server_mod_search ~= nil then
 				st.set("server_mod_filter", sanitize_text(fields.te_server_mod_search, 128), true)
 			end
+			if not fields.btn_content_clear and not fields.btn_cnt_clear and fields.te_content_search ~= nil then
+				st.set("content_search_query", sanitize_text(fields.te_content_search, 128), true)
+			end
 			return true
 		end
 	end
@@ -412,6 +415,9 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	end
 	if not fields.btn_srv_mod_clear and fields.te_server_mod_search ~= nil then
 		st.set("server_mod_filter", sanitize_text(fields.te_server_mod_search, 128), true)
+	end
+	if not fields.btn_content_clear and not fields.btn_cnt_clear and fields.te_content_search ~= nil then
+		st.set("content_search_query", sanitize_text(fields.te_content_search, 128), true)
 	end
 	if fields.te_playername ~= nil then
 		local clean_name = sanitize_name(fields.te_playername)
