@@ -66,23 +66,12 @@ end
 local listeners = {}
 
 function state.init()
-	-- Cold launch default: ALWAYS greet the player with the "games" tab.
-	-- Only if returning from an active session (e.g. disconnected from a server or exited a local world),
-	-- restore the respective tab so the user lands back where they were.
-	if rawget(_G, "gamedata") and (gamedata.mode == "join" or (gamedata.address and gamedata.address ~= "")) then
-		current_state.active_tab = "online"
-		gamedata.mode = nil
-		gamedata.address = nil
-	elseif rawget(_G, "gamedata") and (gamedata.mode == "singleplayer" or gamedata.mode == "host") then
-		current_state.active_tab = "local"
-		gamedata.mode = nil
+	-- Opening the client should always show the games tab by default, with optional debug override
+	local debug_tab = core.settings:get("debug_active_tab")
+	if debug_tab and debug_tab ~= "" then
+		current_state.active_tab = debug_tab
 	else
 		current_state.active_tab = "games"
-	end
-
-	local dbg_tab = core.settings:get("debug_active_tab")
-	if dbg_tab and dbg_tab ~= "" then
-		current_state.active_tab = dbg_tab
 	end
 
 	-- Always ensure mainmenu_session_tab is cleared from settings so cold starts stay clean
