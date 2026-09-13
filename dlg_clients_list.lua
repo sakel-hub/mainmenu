@@ -7,6 +7,7 @@ local function clients_list_formspec(dialogdata)
 	local TOUCH_GUI = core.settings:get_bool("touch_gui")
 	local clients_list = dialogdata.server.clients_list
 	local servername   = dialogdata.server.name
+	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
 
 	local function fmt_formspec_list(list)
 		local escaped = {}
@@ -25,7 +26,8 @@ local function clients_list_formspec(dialogdata)
 			fgettext("Players connected to\n$1",
 				"<b>" .. core.hypertext_escape(servername) .. "</b>") .. "]",
 		"textlist[0.5,1.5;5,6.8;;" .. fmt_formspec_list(clients_list) .. "]",
-		"button[1.5,8.5;3,0.8;quit;OK]"
+		(th and th.button_primary and th.button_primary(1.5, 8.5, 3, 0.8, "quit", "OK", nil, true, "font_size=+1")) or
+			"button[1.5,8.5;3,0.8;quit;OK]"
 	}
 	return table.concat(formspec, "")
 end

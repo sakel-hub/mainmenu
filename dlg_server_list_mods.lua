@@ -73,7 +73,8 @@ local function get_formspec(dialogdata)
 		-- TRANSLATORS: Expand all entries in a tree view
 		group_by_prefix and (th and th.toggle_switch and th.toggle_switch(0.5, 9.05, 4.8, 0.42, "expand_all", fgettext("Expand all"), expand_all) or
 			("checkbox[0.5,9.15;expand_all;" .. fgettext("Expand all") .. ";" .. (expand_all and "true" or "false") .. "]")) or "",
-		"button[5.5,8.5;2,0.8;quit;OK]"
+		(th and th.button_primary and th.button_primary(5.5, 8.5, 2, 0.8, "quit", "OK", nil, true, "font_size=+1")) or
+			"button[5.5,8.5;2,0.8;quit;OK]"
 	}
 	return table.concat(formspec, "")
 end

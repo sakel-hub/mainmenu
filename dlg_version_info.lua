@@ -23,6 +23,7 @@ if not core.get_http_api then
 end
 
 local function version_info_formspec(data)
+	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
 	local cur_ver = core.get_version()
 	-- TRANSLATORS: $1 = name of the engine
 	local title = fgettext("A new $1 version is available", cur_ver.project)
@@ -33,16 +34,24 @@ local function version_info_formspec(data)
 				" with features and bugfixes.",
 			cur_ver.string, data.new_version or "", data.url or "")
 
+	local btn_visit = (th and th.button_primary and th.button_primary(0.0, 0, 4.0, 0.8, "version_check_visit", fgettext("Visit website"), nil, true, "font_size=+1")) or
+		("button[0.0,0;4.0,0.8;version_check_visit;" .. fgettext("Visit website") .. "]")
+	local btn_remind = (th and th.button_secondary and th.button_secondary(4.5, 0, 3.5, 0.8, "version_check_remind", fgettext("Later"), nil, true, "font_size=+1")) or
+		("button[4.5,0;3.5,0.8;version_check_remind;" .. fgettext("Later") .. "]")
+	local btn_never = (th and th.button_secondary and th.button_secondary(8.5, 0, 3.5, 0.8, "version_check_never", fgettext("Never"), nil, true, "font_size=+1")) or
+		("button[8.5,0;3.5,0.8;version_check_never;" .. fgettext("Never") .. "]")
+
 	local fs = {
-		"formspec_version[3]",
+		"formspec_version[7]",
 		"size[12.8,7]",
-		"style_type[label;textcolor=#0E0]",
-		"label[0.5,0.8;", title, "]",
-		"textarea[0.4,1.6;12,3.4;;;", message, "]",
+		(th and th.get_styles and th.get_styles()) or "",
+		(th and th.label and th.label(0.5, 0.8, title, "title", (th and th.colors and th.colors.brand_green_hover) or "#0E0", "bold")) or
+			("style_type[label;textcolor=#0E0]label[0.5,0.8;" .. core.formspec_escape(title) .. "]"),
+		"textarea[0.4,1.6;12,3.4;;;", core.formspec_escape(message), "]",
 		"container[0.4,5.8]",
-		"button[0.0,0;4.0,0.8;version_check_visit;", fgettext("Visit website"), "]",
-		"button[4.5,0;3.5,0.8;version_check_remind;", fgettext("Later"), "]",
-		"button[8.5.5,0;3.5,0.8;version_check_never;", fgettext("Never"), "]",
+		btn_visit,
+		btn_remind,
+		btn_never,
 		"container_end[]",
 	}
 
