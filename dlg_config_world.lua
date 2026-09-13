@@ -316,6 +316,10 @@ local function handle_buttons(this, fields)
 
 		if not worldfile:write() then
 			core.log("error", "Failed to write world config file")
+		else
+			if mainmenu and mainmenu.view and mainmenu.view.clear_local_cache then
+				mainmenu.view.clear_local_cache(this.data.worldspec.path)
+			end
 		end
 
 		this:delete()

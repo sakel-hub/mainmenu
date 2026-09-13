@@ -189,9 +189,7 @@ local function resume_server_buttonhandler(this, fields)
 		core.settings:set("mainmenu_last_server_address", addr)
 		core.settings:set("mainmenu_last_server_port", tostring(port))
 		core.settings:set("mainmenu_session_tab", "online")
-		if core.settings and core.settings.write then
-			core.settings:write()
-		end
+		core.settings:write()
 
 		local st = (mainmenu and mainmenu.state) or rawget(_G, "state")
 		if st then

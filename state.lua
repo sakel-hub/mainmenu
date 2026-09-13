@@ -90,9 +90,7 @@ function state.init()
 		core.settings:set("mainmenu_session_tab", "")
 	end
 	core.settings:set("maintab_LAST", "games")
-	if core.settings and core.settings.write then
-		core.settings:write()
-	end
+	core.settings:write()
 
 	local last_world = tonumber(core.settings:get("mainmenu_last_selected_world"))
 	if last_world and last_world > 0 then
@@ -180,9 +178,7 @@ function state.save_persistent()
 	if current_state.player_name and current_state.player_name ~= "" then
 		core.settings:set("name", current_state.player_name)
 	end
-	if core.settings and core.settings.write then
-		core.settings:write()
-	end
+	core.settings:write()
 end
 
 setmetatable(state, {

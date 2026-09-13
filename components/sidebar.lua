@@ -24,11 +24,11 @@ function sidebar.render(st, th)
 
 	-- Navigation Menu Items (including Games Chooser)
 	local nav_items = {
-		{ id = "games",   name = "nav_games",   label = fgettext("Games"),       icon = defaulttexturedir .. "server_flags_creative.png" },
-		{ id = "local",   name = "nav_local",   label = fgettext("Local Game"),  icon = defaulttexturedir .. "start_icon.png" },
-		{ id = "online",  name = "nav_online",  label = fgettext("Play Online"), icon = defaulttexturedir .. "server_public.png" },
-		{ id = "content", name = "nav_content", label = fgettext("ContentDB"),   icon = defaulttexturedir .. "cdb_update.png" },
-		{ id = "about",   name = "nav_about",   label = fgettext("About"),       icon = defaulttexturedir .. "settings_info.png" },
+		{ id = "games",   name = "nav_games",   label = fgettext("Games") },
+		{ id = "local",   name = "nav_local",   label = fgettext("Local Game") },
+		{ id = "online",  name = "nav_online",  label = fgettext("Play Online") },
+		{ id = "content", name = "nav_content", label = fgettext("ContentDB") },
+		{ id = "about",   name = "nav_about",   label = fgettext("About") },
 	}
 
 	local start_y = 1.95

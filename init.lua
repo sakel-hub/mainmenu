@@ -61,12 +61,12 @@ if settingtypes and settingtypes.parse_config_file then
 	end
 end
 
-if core and core.register_on_formspec_input then
+if core.register_on_formspec_input then
 	core.register_on_formspec_input(function(formname, fields)
 		if formname == "__builtin:settings" and fields then
 			if fields.menu_theme or fields.back or fields.quit then
 				local c = mm_game_theme.resolve_colors()
-				if c and core.set_clouds_color and core.set_sky_color then
+				if c then
 					core.set_clouds_color(c.clouds)
 					core.set_sky_color(c.sky)
 				end

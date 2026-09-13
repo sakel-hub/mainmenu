@@ -171,9 +171,7 @@ local function register_buttonhandler(this, fields)
 		core.settings:set("address",     gamedata.address)
 		core.settings:set("remote_port", gamedata.port)
 		core.settings:set("mainmenu_session_tab", "online")
-		if core.settings and core.settings.write then
-			core.settings:write()
-		end
+		core.settings:write()
 
 		core.start()
 	end

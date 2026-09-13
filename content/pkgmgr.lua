@@ -809,16 +809,7 @@ function pkgmgr.refresh_game_last_played()
 	end
 
 	-- 2. Scan all worlds
-	local worlds = {}
-	if core and core.get_worlds then
-		worlds = core.get_worlds()
-	elseif menudata and menudata.worldlist then
-		if menudata.worldlist.get_raw_list then
-			worlds = menudata.worldlist:get_raw_list()
-		elseif menudata.worldlist.get_list then
-			worlds = menudata.worldlist:get_list()
-		end
-	end
+	local worlds = core.get_worlds() or {}
 	local delim = DIR_DELIM or "/"
 	for _, w in ipairs(worlds) do
 		if w.gameid and w.path then

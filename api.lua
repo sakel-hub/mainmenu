@@ -11,7 +11,7 @@ if not menupath or menupath == "" then
 	if src and src:sub(1, 1) == "@" then
 		menupath = src:sub(2):match("(.*/)")
 	end
-	if not menupath and core and core.get_mainmenu_path then
+	if not menupath then
 		menupath = core.get_mainmenu_path()
 	end
 	menupath = menupath or "."
@@ -40,7 +40,7 @@ function mainmenu.sync_game_theme(force)
 
 	local game_id = (mainmenu.state and mainmenu.state.get and mainmenu.state.get("selected_game_id"))
 		or (mainmenu.state and mainmenu.state.selected_game_id)
-		or (core and core.settings and core.settings:get("menu_last_game"))
+		or core.settings:get("menu_last_game")
 
 	local game = nil
 	if pkgmgr and pkgmgr.find_by_gameid and game_id then

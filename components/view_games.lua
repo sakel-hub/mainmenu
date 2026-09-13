@@ -43,7 +43,7 @@ local function get_game_description(game)
 end
 
 local function get_quick_connect_icon(session_type, s_addr, s_port, rw_game)
-	local menupath = custom_menupath or (core and core.get_mainmenu_path and core.get_mainmenu_path()) or "."
+	local menupath = custom_menupath or core.get_mainmenu_path()
 	local sep = (menupath:sub(-1) == "/" or menupath:sub(-1) == "\\") and "" or (DIR_DELIM or "/")
 	local tex_dir = menupath .. sep .. "textures" .. (DIR_DELIM or "/")
 

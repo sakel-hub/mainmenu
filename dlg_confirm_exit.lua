@@ -64,13 +64,9 @@ local function exit_dialog_buttonhandler(this, fields)
 		core.settings:set_bool("enable_esc_dialog", val)
 		return true
 	elseif fields.btn_quit_confirm_yes then
-		if core.settings then
-			core.settings:set("maintab_LAST", "games")
-			core.settings:set("mainmenu_session_tab", "")
-			if core.settings.write then
-				core.settings:write()
-			end
-		end
+		core.settings:set("maintab_LAST", "games")
+		core.settings:set("mainmenu_session_tab", "")
+		core.settings:write()
 		this:delete()
 		core.close()
 		return true

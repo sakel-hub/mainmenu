@@ -69,9 +69,6 @@ local function launch_selected_world(st)
 	end
 
 	st.save_persistent()
-	if core.settings and core.settings.write then
-		core.settings:write()
-	end
 	core.start()
 end
 
@@ -126,9 +123,6 @@ local function connect_to_server(st, server)
 	core.settings:set("mainmenu_last_server_port", tostring(server.port))
 	core.settings:set("mainmenu_last_server_desc", server.description or "")
 	st.save_persistent()
-	if core.settings and core.settings.write then
-		core.settings:write()
-	end
 	core.start()
 end
 
@@ -261,7 +255,7 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 		if fields.cb_creative_mode == "" or fields.cb_creative_mode == "toggle" then
 			val = not cur
 		else
-			val = (core.is_yes and core.is_yes(fields.cb_creative_mode)) or (fields.cb_creative_mode == true or fields.cb_creative_mode == "true")
+			val = core.is_yes(fields.cb_creative_mode)
 		end
 		st.set("creative_mode", val)
 		core.settings:set_bool("creative_mode", val)
@@ -269,12 +263,12 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	end
 	if fields.cb_enable_damage ~= nil then
 		local cur = st.enable_damage
-		if cur == nil and core.settings then cur = core.settings:get_bool("enable_damage") end
+		if cur == nil then cur = core.settings:get_bool("enable_damage") end
 		local val
 		if fields.cb_enable_damage == "" or fields.cb_enable_damage == "toggle" then
 			val = not cur
 		else
-			val = (core.is_yes and core.is_yes(fields.cb_enable_damage)) or (fields.cb_enable_damage == true or fields.cb_enable_damage == "true")
+			val = core.is_yes(fields.cb_enable_damage)
 		end
 		st.set("enable_damage", val)
 		core.settings:set_bool("enable_damage", val)
@@ -282,12 +276,12 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	end
 	if fields.cb_enable_server ~= nil then
 		local cur = st.is_hosting
-		if cur == nil and core.settings then cur = core.settings:get_bool("enable_server") end
+		if cur == nil then cur = core.settings:get_bool("enable_server") end
 		local val
 		if fields.cb_enable_server == "" or fields.cb_enable_server == "toggle" then
 			val = not cur
 		else
-			val = (core.is_yes and core.is_yes(fields.cb_enable_server)) or (fields.cb_enable_server == true or fields.cb_enable_server == "true")
+			val = core.is_yes(fields.cb_enable_server)
 		end
 		st.set("is_hosting", val)
 		core.settings:set_bool("enable_server", val)

@@ -143,10 +143,7 @@ theme.colors = {
 
 -- Safely queries window information and computes viewport scale and tiers
 function theme.get_viewport_info()
-	local winfo
-	if core and core.get_window_info then
-		winfo = core.get_window_info()
-	end
+	local winfo = core.get_window_info()
 
 	local max_x = (winfo and winfo.max_formspec_size and winfo.max_formspec_size.x) or 21.6
 	local max_y = (winfo and winfo.max_formspec_size and winfo.max_formspec_size.y) or 12.0
@@ -730,7 +727,7 @@ function theme.toggle_switch(x, y, w, h, name, label, is_checked, tooltip)
 	local pill_y = ty + (th_h - ph) / 2
 
 	local tex_name = is_on and "toggle_pill_on.png" or "toggle_pill_off.png"
-	local menupath = custom_menupath or (core and core.get_mainmenu_path and core.get_mainmenu_path()) or "."
+	local menupath = custom_menupath or core.get_mainmenu_path()
 	local sep = (menupath:sub(-1) == "/" or menupath:sub(-1) == "\\") and "" or (DIR_DELIM or "/")
 	local tex_path = menupath .. sep .. "textures" .. (DIR_DELIM or "/") .. tex_name
 

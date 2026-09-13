@@ -76,7 +76,7 @@ local function get_server_version(srv)
 		return srv.version
 	end
 	if get_local_server_type(srv) then
-		local v = core and core.get_version and core.get_version()
+		local v = core.get_version()
 		return (v and v.string) or "Luanti"
 	end
 	return ""
@@ -576,7 +576,7 @@ local function render_enriched_serverlist_row(spec, th)
 	local version_color = c.text_muted or "#cbd5e1"
 	local raw_ver = spec.version
 	if (not raw_ver or raw_ver == "") and local_type then
-		local v = core and core.get_version and core.get_version()
+		local v = core.get_version()
 		raw_ver = (v and v.string) or "Luanti"
 		version_color = c.text_primary
 	end
@@ -849,7 +849,7 @@ function view_online.render(st, th)
 		-- Version Value
 		local ver_val = selected_server.version
 		if (not ver_val or ver_val == "") and sel_local_type then
-			local v = core and core.get_version and core.get_version()
+			local v = core.get_version()
 			ver_val = (v and v.string) or "Luanti"
 		end
 		ver_val = (ver_val and ver_val ~= "") and ver_val or "Luanti"
@@ -1023,7 +1023,7 @@ function view_online.render(st, th)
 			-- 2. Engine Version Resolution
 			local ver_str = selected_server.version
 			if (not ver_str or ver_str == "") and sel_local_type then
-				local v = core and core.get_version and core.get_version()
+				local v = core.get_version()
 				ver_str = (v and v.string) or fgettext("Luanti")
 			end
 			ver_str = (ver_str and ver_str ~= "") and ver_str or fgettext("Luanti")
@@ -1051,10 +1051,8 @@ function view_online.render(st, th)
 			local proto_min = selected_server.proto_min
 			local proto_max = selected_server.proto_max
 			if (not proto_min or not proto_max) and sel_local_type then
-				if core and core.get_min_supp_proto and core.get_max_supp_proto then
-					proto_min = core.get_min_supp_proto()
-					proto_max = core.get_max_supp_proto()
-				end
+				proto_min = core.get_min_supp_proto()
+				proto_max = core.get_max_supp_proto()
 			end
 			proto_min = proto_min or "?"
 			proto_max = proto_max or "?"
@@ -1496,7 +1494,7 @@ function view_online.render(st, th)
 		if selected_server.url and selected_server.url ~= "" then
 			table.insert(fs, th.button_icon(13.40, slot_y, 0.72, slot_h, "btn_server_url", defaulttexturedir .. "server_url.png", fgettext("Open server website: $1", selected_server.url)))
 		else
-			local menupath = custom_menupath or (core and core.get_mainmenu_path and core.get_mainmenu_path()) or "."
+			local menupath = custom_menupath or core.get_mainmenu_path()
 			local unavail_icon = menupath .. DIR_DELIM .. "textures" .. DIR_DELIM .. "icon_server_url_unavailable.png"
 			local f_icon = io.open(unavail_icon, "r")
 			if f_icon then

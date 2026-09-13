@@ -205,9 +205,7 @@ local function direct_connect_buttonhandler(this, fields)
 		core.settings:set("mainmenu_last_server_address", addr)
 		core.settings:set("mainmenu_last_server_port", tostring(port))
 		core.settings:set("mainmenu_session_tab", "online")
-		if core.settings and core.settings.write then
-			core.settings:write()
-		end
+		core.settings:write()
 
 		if this.data.add_fav and serverlistmgr and serverlistmgr.add_favorite then
 			serverlistmgr.add_favorite({
