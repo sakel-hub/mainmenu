@@ -38,43 +38,9 @@ local function register_formspec(dialogdata)
 	end
 
 	local focused_f = dialogdata.focused_field or (dialogdata.name ~= "" and "password" or "name")
-	if th and th.text_input and th.password_input then
-		table.insert(retval, th.text_input(0.375, 1.575, 7.25, 0.8, "name", fgettext("Name"), dialogdata.name or "", focused_f == "name"))
-		table.insert(retval, th.password_input(0.375, 2.875, 7.25, 0.8, "password", fgettext("Password"), focused_f == "password"))
-		table.insert(retval, th.password_input(0.375, 4.175, 7.25, 0.8, "password_2", fgettext("Confirm Password"), focused_f == "password_2"))
-	else
-		if th and th.input_box then
-			table.insert(retval, th.input_box(0.375, 1.575, 7.25, 0.8, focused_f == "name"))
-			table.insert(retval, th.input_box(0.375, 2.875, 7.25, 0.8, focused_f == "password"))
-			table.insert(retval, th.input_box(0.375, 4.175, 7.25, 0.8, focused_f == "password_2"))
-		end
-
-		local pad_x = 0.15
-		table.insert_all(retval, {
-			string.format("field[%f,1.575;%f,0.8;name;%s;%s]",
-				0.375 + pad_x, 7.25 - 2 * pad_x,
-				core.formspec_escape(fgettext("Name")),
-				core.formspec_escape(dialogdata.name or "")),
-			string.format("field[%f,2.875;%f,0.8;password;%s;]",
-				0.375 + pad_x, 7.25 - 2 * pad_x,
-				core.formspec_escape(fgettext("Password"))),
-			string.format("field[%f,4.175;%f,0.8;password_2;%s;]",
-				0.375 + pad_x, 7.25 - 2 * pad_x,
-				core.formspec_escape(fgettext("Confirm Password"))),
-		})
-
-		if th and th.focus_overlay then
-			table.insert(retval, th.focus_overlay(0.375, 1.575, 7.25, 0.8, "name", focused_f == "name"))
-			table.insert(retval, th.focus_overlay(0.375, 2.875, 7.25, 0.8, "password", focused_f == "password"))
-			table.insert(retval, th.focus_overlay(0.375, 4.175, 7.25, 0.8, "password_2", focused_f == "password_2"))
-		end
-
-		table.insert_all(retval, {
-			"field_enter_after_edit[name;true]",
-			"field_enter_after_edit[password;true]",
-			"field_enter_after_edit[password_2;true]"
-		})
-	end
+	table.insert(retval, th.text_input(0.375, 1.575, 7.25, 0.8, "name", fgettext("Name"), dialogdata.name or "", focused_f == "name"))
+	table.insert(retval, th.password_input(0.375, 2.875, 7.25, 0.8, "password", fgettext("Password"), focused_f == "password"))
+	table.insert(retval, th.password_input(0.375, 4.175, 7.25, 0.8, "password_2", fgettext("Confirm Password"), focused_f == "password_2"))
 
 	if dialogdata.error then
 		table.insert_all(retval, {

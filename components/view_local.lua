@@ -209,8 +209,10 @@ end
 local function compare_worlds(a, b, col, dir)
 	local va, vb
 	if col == "game" then
-		local ga = (pkgmgr.find_by_gameid(a.gameid) and pkgmgr.find_by_gameid(a.gameid).title) or a.gameid or ""
-		local gb = (pkgmgr.find_by_gameid(b.gameid) and pkgmgr.find_by_gameid(b.gameid).title) or b.gameid or ""
+		local pa = a.gameid and pkgmgr.find_by_gameid(a.gameid)
+		local pb = b.gameid and pkgmgr.find_by_gameid(b.gameid)
+		local ga = (pa and pa.title) or a.gameid or ""
+		local gb = (pb and pb.title) or b.gameid or ""
 		va = ga:lower()
 		vb = gb:lower()
 	elseif col == "mg" then

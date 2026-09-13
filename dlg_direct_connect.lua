@@ -28,48 +28,10 @@ local function direct_connect_formspec(dialogdata)
 	end
 
 	local focused_f = dialogdata.focused_field or ((not dialogdata.address or dialogdata.address == "") and "dc_address" or "dc_pwd")
-	if th and th.text_input and th.password_input then
-		table.insert(fs, th.text_input(0.5, 1.85, 5.5, 0.75, "dc_address", fgettext("Server Address / Host"), dialogdata.address or "", focused_f == "dc_address"))
-		table.insert(fs, th.text_input(6.2, 1.85, 2.3, 0.75, "dc_port", fgettext("Port"), tostring(dialogdata.port or "30000"), focused_f == "dc_port"))
-		table.insert(fs, th.text_input(0.5, 3.15, 3.8, 0.75, "dc_name", fgettext("Player Name"), dialogdata.name or "", focused_f == "dc_name"))
-		table.insert(fs, th.password_input(4.7, 3.15, 3.8, 0.75, "dc_pwd", fgettext("Password"), focused_f == "dc_pwd"))
-	else
-		if th and th.input_box then
-			table.insert(fs, th.input_box(0.5, 1.85, 5.5, 0.75, focused_f == "dc_address"))
-			table.insert(fs, th.input_box(6.2, 1.85, 2.3, 0.75, focused_f == "dc_port"))
-			table.insert(fs, th.input_box(0.5, 3.15, 3.8, 0.75, focused_f == "dc_name"))
-			table.insert(fs, th.input_box(4.7, 3.15, 3.8, 0.75, focused_f == "dc_pwd"))
-		end
-
-		local pad_x = 0.15
-		table.insert(fs, string.format("field[%f,1.85;%f,0.75;dc_address;%s;%s]",
-			0.5 + pad_x, 5.5 - 2 * pad_x,
-			core.formspec_escape(fgettext("Server Address / Host")),
-			core.formspec_escape(dialogdata.address or "")))
-		table.insert(fs, string.format("field[%f,1.85;%f,0.75;dc_port;%s;%s]",
-			6.2 + pad_x, 2.3 - 2 * pad_x,
-			core.formspec_escape(fgettext("Port")),
-			core.formspec_escape(tostring(dialogdata.port or "30000"))))
-		table.insert(fs, string.format("field[%f,3.15;%f,0.75;dc_name;%s;%s]",
-			0.5 + pad_x, 3.8 - 2 * pad_x,
-			core.formspec_escape(fgettext("Player Name")),
-			core.formspec_escape(dialogdata.name or "")))
-		table.insert(fs, string.format("field[%f,3.15;%f,0.75;dc_pwd;%s;]",
-			4.7 + pad_x, 3.8 - 2 * pad_x,
-			core.formspec_escape(fgettext("Password"))))
-
-		if th and th.focus_overlay then
-			table.insert(fs, th.focus_overlay(0.5, 1.85, 5.5, 0.75, "dc_address", focused_f == "dc_address"))
-			table.insert(fs, th.focus_overlay(6.2, 1.85, 2.3, 0.75, "dc_port", focused_f == "dc_port"))
-			table.insert(fs, th.focus_overlay(0.5, 3.15, 3.8, 0.75, "dc_name", focused_f == "dc_name"))
-			table.insert(fs, th.focus_overlay(4.7, 3.15, 3.8, 0.75, "dc_pwd", focused_f == "dc_pwd"))
-		end
-
-		table.insert(fs, "field_enter_after_edit[dc_address;true]")
-		table.insert(fs, "field_enter_after_edit[dc_port;true]")
-		table.insert(fs, "field_enter_after_edit[dc_name;true]")
-		table.insert(fs, "field_enter_after_edit[dc_pwd;true]")
-	end
+	table.insert(fs, th.text_input(0.5, 1.85, 5.5, 0.75, "dc_address", fgettext("Server Address / Host"), dialogdata.address or "", focused_f == "dc_address"))
+	table.insert(fs, th.text_input(6.2, 1.85, 2.3, 0.75, "dc_port", fgettext("Port"), tostring(dialogdata.port or "30000"), focused_f == "dc_port"))
+	table.insert(fs, th.text_input(0.5, 3.15, 3.8, 0.75, "dc_name", fgettext("Player Name"), dialogdata.name or "", focused_f == "dc_name"))
+	table.insert(fs, th.password_input(4.7, 3.15, 3.8, 0.75, "dc_pwd", fgettext("Password"), focused_f == "dc_pwd"))
 
 	table.insert(fs, th.toggle_switch(0.5, 4.25, 8.0, 0.42, "dc_add_fav",
 		fgettext("Add to Favorites"),

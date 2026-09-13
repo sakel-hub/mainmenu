@@ -195,7 +195,7 @@ test("open_package_details falls back to search dialog for unknown packages", fu
 	local search_opened = false
 	local search_term_passed = nil
 
-	_G.create_contentdb_dlg = function(type_filter, search_tag, search_term)
+	_G.create_contentdb_dlg = function(_type_filter, _search_tag, search_term)
 		search_opened = true
 		search_term_passed = search_term
 		return {
