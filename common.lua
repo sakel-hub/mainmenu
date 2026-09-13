@@ -282,45 +282,12 @@ end
 
 function confirmation_formspec(message, confirm_id, confirm_label, cancel_id, cancel_label)
 	local th = (mainmenu and mainmenu.theme) or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
-	local c = th and th.colors or {
-		btn_secondary_bg = "#1e3852aa",
-		btn_secondary_hover = "#2d557caa",
-		btn_secondary_pressed = "#162c42cc",
-		btn_secondary_focus = "#38bdf8",
-		btn_danger_bg = "#dc2626",
-		btn_danger_hover = "#ef4444",
-		btn_danger_pressed = "#991b1b",
-		btn_danger_focus = "#f87171",
-		btn_danger_text = "#ffffff",
-		btn_danger_pressed_text = "#fca5a5",
-		text_muted = "#cbd5e1",
-		text_primary = "#ffffff",
-		text_secondary = "#f1f5f9",
-	}
+	local confirm_btn = th.button_danger(0.5, 1.5, 2.5, 0.5, confirm_id, confirm_label, nil, true, "font_size=+1")
+	local cancel_btn = th.button_secondary(7.0, 1.5, 2.5, 0.5, cancel_id, cancel_label, nil, true, "font_size=+1")
 
 	return "formspec_version[7]" ..
 			"size[10,2.5,true]" ..
 			"label[0.5,0.5;" .. message .. "]" ..
-			string.format("style[%s;border=true;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-				confirm_id, c.btn_danger_bg, c.btn_danger_text) ..
-			string.format("style[%s:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-				confirm_id, c.btn_danger_hover, c.text_primary) ..
-			string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-				confirm_id, c.btn_danger_focus, c.btn_danger_bg, c.text_primary) ..
-			string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-				confirm_id, c.btn_danger_focus, c.btn_danger_hover, c.text_primary) ..
-			string.format("style[%s:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-				confirm_id, c.btn_danger_pressed, c.btn_danger_pressed_text) ..
-			string.format("style[%s;border=true;bgcolor=#334155;textcolor=%s;font=bold;font_size=+1]",
-				cancel_id, c.text_secondary or "#f1f5f9") ..
-			string.format("style[%s:hovered;border=true;bgcolor=#475569;textcolor=%s;font=bold;font_size=+1]",
-				cancel_id, c.text_primary) ..
-			string.format("style[%s:focused;border=true;bordercolor=%s;bgcolor=#334155;textcolor=%s;font=bold;font_size=+1]",
-				cancel_id, c.btn_secondary_focus, c.text_primary) ..
-			string.format("style[%s:focused+hovered;border=true;bordercolor=%s;bgcolor=#475569;textcolor=%s;font=bold;font_size=+1]",
-				cancel_id, c.btn_secondary_focus, c.text_primary) ..
-			string.format("style[%s:pressed;border=true;bgcolor=#1e293b;textcolor=%s;font=bold;font_size=+1]",
-				cancel_id, c.text_muted) ..
-			"button[0.5,1.5;2.5,0.5;" .. confirm_id .. ";" .. confirm_label .. "]" ..
-			"button[7.0,1.5;2.5,0.5;" .. cancel_id .. ";" .. cancel_label .. "]"
+			confirm_btn ..
+			cancel_btn
 end

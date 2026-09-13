@@ -323,12 +323,14 @@ local function create_world_formspec(dialogdata)
 
 	-- Warning when making a devtest world
 	if game.id == "devtest" then
+		local warn_col = (th and th.colors and th.colors.warn_gold) or "#ff8800"
 		retval = retval ..
 			"container[0,3.5]" ..
-			"box[0,0;5.8,1.7;#ff8800]" ..
+			"box[0,0;5.8,1.7;" .. warn_col .. "]" ..
 			"textarea[0.4,0.1;6,1.8;;;"..
 			fgettext("Development Test is meant for developers.") .. "]" ..
-			"button[1,1;4,0.5;world_create_open_cdb;" .. fgettext("Install another game") .. "]" ..
+			(th and th.button_secondary and th.button_secondary(1, 1, 4, 0.5, "world_create_open_cdb", fgettext("Install another game"), nil, true) or
+			("button[1,1;4,0.5;world_create_open_cdb;" .. fgettext("Install another game") .. "]")) ..
 			"container_end[]"
 	end
 
@@ -343,8 +345,10 @@ local function create_world_formspec(dialogdata)
 
 		-- Menu buttons
 		"container[0,6.9]"..
-		"button[3.25,0;3,0.5;world_create_confirm;" .. fgettext("Create") .. "]" ..
-		"button[6.25,0;3,0.5;world_create_cancel;" .. fgettext("Cancel") .. "]" ..
+		(th and th.button_primary and th.button_primary(3.25, 0, 3, 0.5, "world_create_confirm", fgettext("Create"), nil, true) or
+		("button[3.25,0;3,0.5;world_create_confirm;" .. fgettext("Create") .. "]")) ..
+		(th and th.button_secondary and th.button_secondary(6.25, 0, 3, 0.5, "world_create_cancel", fgettext("Cancel"), nil, true) or
+		("button[6.25,0;3,0.5;world_create_cancel;" .. fgettext("Cancel") .. "]")) ..
 		"container_end[]"
 
 	return retval

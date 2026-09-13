@@ -84,20 +84,10 @@ local function register_formspec(dialogdata)
 	end
 
 	if th and th.button_primary and th.button_secondary then
-		table.insert(retval, th.button_primary(0.375, buttons_y, 2.5, 0.8, "dlg_register_confirm", fgettext("Register"), nil, btn_font))
+		table.insert(retval, th.button_primary(0.375, buttons_y, 2.5, 0.8, "dlg_register_confirm", fgettext("Register"), nil, true, btn_font))
 		table.insert(retval, th.button_secondary(5.125, buttons_y, 2.5, 0.8, "dlg_register_cancel", fgettext("Cancel"), nil, true, btn_font))
 	else
 		table.insert_all(retval, {
-			string.format("style[dlg_register_cancel;border=true;bgcolor=#334155;textcolor=#f1f5f9;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_cancel:hovered;border=true;bgcolor=#475569;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_cancel:focused;border=true;bordercolor=#38bdf8;bgcolor=#334155;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_cancel:focused+hovered;border=true;bordercolor=#38bdf8;bgcolor=#475569;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_cancel:pressed;border=true;bgcolor=#1e293b;textcolor=#cbd5e1;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_confirm;border=true;bgcolor=#16a34a;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_confirm:hovered;border=true;bgcolor=#22c55e;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_confirm:focused;border=true;bordercolor=#4ade80;bgcolor=#16a34a;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_confirm:focused+hovered;border=true;bordercolor=#4ade80;bgcolor=#22c55e;textcolor=#ffffff;font=bold;%s]", btn_font),
-			string.format("style[dlg_register_confirm:pressed;border=true;bgcolor=#14532d;textcolor=#86efac;font=bold;%s]", btn_font),
 			"container[0.375,", tostring(buttons_y), "]",
 			"button[0,0;2.5,0.8;dlg_register_confirm;", fgettext("Register"), "]",
 			"button[4.75,0;2.5,0.8;dlg_register_cancel;", fgettext("Cancel"), "]",

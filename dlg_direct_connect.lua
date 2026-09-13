@@ -100,25 +100,7 @@ local function direct_connect_formspec(dialogdata)
 	if th and th.dialog_actions then
 		table.insert(fs, th.dialog_actions(0.5, btn_y, 8.0, 0.85, "dc_cancel", fgettext("Cancel"), "dc_connect", fgettext("CONNECT"), false, btn_font))
 	else
-		table.insert(fs, string.format("style[dc_cancel;border=true;bgcolor=#334155;textcolor=#f1f5f9;font=bold;%s]", btn_font))
-		table.insert(fs, string.format("style[dc_cancel:hovered;border=true;bgcolor=#475569;textcolor=#ffffff;font=bold;%s]", btn_font))
-		table.insert(fs, string.format("style[dc_cancel:focused;border=true;bordercolor=%s;bgcolor=#334155;textcolor=#ffffff;font=bold;%s]",
-			c.btn_secondary_focus, btn_font))
-		table.insert(fs, string.format("style[dc_cancel:focused+hovered;border=true;bordercolor=%s;bgcolor=#475569;textcolor=#ffffff;font=bold;%s]",
-			c.btn_secondary_focus, btn_font))
-		table.insert(fs, string.format("style[dc_cancel:pressed;border=true;bgcolor=#1e293b;textcolor=#cbd5e1;font=bold;%s]", btn_font))
 		table.insert(fs, string.format("button[0.5,%f;3.8,0.85;dc_cancel;%s]", btn_y, core.formspec_escape(fgettext("Cancel"))))
-
-		table.insert(fs, string.format("style[dc_connect;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]",
-			c.btn_primary_bg, c.text_primary, btn_font))
-		table.insert(fs, string.format("style[dc_connect:hovered;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]",
-			c.btn_primary_hover, c.text_primary, btn_font))
-		table.insert(fs, string.format("style[dc_connect:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]",
-			c.btn_primary_focus, c.btn_primary_hover, c.text_primary, btn_font))
-		table.insert(fs, string.format("style[dc_connect:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=%s;font=bold;%s]",
-			c.btn_primary_focus, c.btn_primary_hover, c.text_primary, btn_font))
-		table.insert(fs, string.format("style[dc_connect:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;%s]",
-			c.btn_primary_pressed, c.btn_primary_pressed_text, btn_font))
 		table.insert(fs, string.format("button[4.7,%f;3.8,0.85;dc_connect;%s]", btn_y, core.formspec_escape(fgettext("CONNECT"))))
 	end
 

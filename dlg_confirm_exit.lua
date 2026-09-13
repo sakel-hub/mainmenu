@@ -6,46 +6,17 @@
 local function exit_dialog_formspec()
 	local show_dialog = core.settings:get_bool("enable_esc_dialog", true)
 	local th = (mainmenu and mainmenu.theme) or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
-	local c = th and th.colors or {
-		btn_secondary_bg = "#1e3852aa",
-		btn_secondary_hover = "#2d557caa",
-		btn_secondary_pressed = "#162c42cc",
-		btn_secondary_focus = "#38bdf8",
-		btn_danger_bg = "#dc2626",
-		btn_danger_hover = "#ef4444",
-		btn_danger_pressed = "#991b1b",
-		btn_danger_focus = "#f87171",
-		btn_danger_text = "#ffffff",
-		btn_danger_pressed_text = "#fca5a5",
-		text_muted = "#cbd5e1",
-		text_primary = "#ffffff",
-	}
 	local formspec = {
 		"formspec_version[7]" ..
 		"size[10,3.6]" ..
 		"style_type[label;font=bold]" ..
-		string.format("style[btn_quit_confirm_cancel;border=true;bgcolor=#334155;textcolor=#f1f5f9;font=bold;font_size=+1]") ..
-		string.format("style[btn_quit_confirm_cancel:hovered;border=true;bgcolor=#475569;textcolor=#ffffff;font=bold;font_size=+1]") ..
-		string.format("style[btn_quit_confirm_cancel:focused;border=true;bordercolor=%s;bgcolor=#334155;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_secondary_focus) ..
-		string.format("style[btn_quit_confirm_cancel:focused+hovered;border=true;bordercolor=%s;bgcolor=#475569;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_secondary_focus) ..
-		string.format("style[btn_quit_confirm_cancel:pressed;border=true;bgcolor=#1e293b;textcolor=#cbd5e1;font=bold;font_size=+1]") ..
-		string.format("style[btn_quit_confirm_yes;border=true;bgcolor=%s;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_danger_bg) ..
-		string.format("style[btn_quit_confirm_yes:hovered;border=true;bgcolor=%s;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_danger_hover) ..
-		string.format("style[btn_quit_confirm_yes:focused;border=true;bordercolor=%s;bgcolor=%s;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_danger_focus, c.btn_danger_bg) ..
-		string.format("style[btn_quit_confirm_yes:focused+hovered;border=true;bordercolor=%s;bgcolor=%s;textcolor=#ffffff;font=bold;font_size=+1]",
-			c.btn_danger_focus, c.btn_danger_hover) ..
-		string.format("style[btn_quit_confirm_yes:pressed;border=true;bgcolor=%s;textcolor=%s;font=bold;font_size=+1]",
-			c.btn_danger_pressed, c.btn_danger_pressed_text) ..
 		"label[0.5,0.5;" .. fgettext("Are you sure you want to quit?") .. "]" ..
 		(th and th.toggle_switch and th.toggle_switch(0.5, 1.35, 9.0, 0.42, "cb_show_dialog", fgettext("Always show this dialog."), show_dialog) or
 		("checkbox[0.5,1.4;cb_show_dialog;" .. fgettext("Always show this dialog.") .. ";" .. tostring(show_dialog) .. "]")) ..
-		"button[0.5,2.3;3,0.8;btn_quit_confirm_cancel;" .. fgettext("Cancel") .. "]" ..
-		"button[6.5,2.3;3,0.8;btn_quit_confirm_yes;" .. fgettext("Quit") .. "]" ..
+		(th and th.button_secondary and th.button_secondary(0.5, 2.3, 3, 0.8, "btn_quit_confirm_cancel", fgettext("Cancel"), nil, true, "font_size=+1") or
+		("button[0.5,2.3;3,0.8;btn_quit_confirm_cancel;" .. fgettext("Cancel") .. "]")) ..
+		(th and th.button_danger and th.button_danger(6.5, 2.3, 3, 0.8, "btn_quit_confirm_yes", fgettext("Quit"), nil, true, "font_size=+1") or
+		("button[6.5,2.3;3,0.8;btn_quit_confirm_yes;" .. fgettext("Quit") .. "]")) ..
 		"set_focus[btn_quit_confirm_yes]"
 	}
 	return table.concat(formspec, "")
