@@ -160,8 +160,16 @@ theme.colors = {
 	tooltip_border           = "#22c55e",   -- Subtle emerald accent
 }
 
--- Safely queries window information and computes viewport scale and tiers
+local cached_vp_info = nil
+local cached_vp_time = 0
+
+-- Safely queries window information and computes viewport scale and tiers (cached per frame / 100ms)
 function theme.get_viewport_info()
+	local now = (core.get_us_time and core.get_us_time()) or (os.clock() * 1000000)
+	if cached_vp_info and (now - cached_vp_time < 100000) then
+		return cached_vp_info
+	end
+
 	local winfo = core.get_window_info()
 
 	local max_x = (winfo and winfo.max_formspec_size and winfo.max_formspec_size.x) or 21.6
@@ -185,7 +193,7 @@ function theme.get_viewport_info()
 		tier = "compact"
 	end
 
-	return {
+	cached_vp_info = {
 		winfo = winfo,
 		scale = scale,
 		tier = tier,
@@ -194,6 +202,9 @@ function theme.get_viewport_info()
 		is_mobile = is_mobile,
 		real_gui_scaling = gui_scaling,
 	}
+	cached_vp_time = now
+
+	return cached_vp_info
 end
 
 

@@ -327,16 +327,21 @@ local function get_filtered_servers(st)
 	local query = parse_search_query(st.server_search_query)
 	local favs = serverlistmgr.get_favorites() or {}
 	local taken_favs = {}
-	local result = serverlistmgr.servers or {}
+	-- Build O(1) favorite lookup map by address:port to avoid O(N*M) nested iterations
+	local fav_map = {}
+	for index, fav in ipairs(favs) do
+		local key = tostring(fav.address or "") .. ":" .. tostring(fav.port or "")
+		fav_map[key] = index
+	end
 
 	for _, server in ipairs(result) do
-		server.is_favorite = false
-		for index, fav in ipairs(favs) do
-			if server.address == fav.address and server.port == fav.port then
-				taken_favs[index] = true
-				server.is_favorite = true
-				break
-			end
+		local key = tostring(server.address or "") .. ":" .. tostring(server.port or "")
+		local fav_index = fav_map[key]
+		if fav_index then
+			taken_favs[fav_index] = true
+			server.is_favorite = true
+		else
+			server.is_favorite = false
 		end
 		server.is_compatible = is_server_protocol_compat(server.proto_min, server.proto_max)
 
