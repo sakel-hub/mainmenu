@@ -246,6 +246,27 @@ test("open_package_details triggers fetch_pkgs when not loaded, then opens dialo
 	_G.contentdb.package_by_id = pkg_by_id
 end)
 
+test("resolve_contentdb_package resolves when target has pre-attached cdb_package", function()
+	local dummy_cdb = { id = "author/mod", url_part = "author/mod", name = "mod", release = 1 }
+	local local_target = { name = "different_name", cdb_package = dummy_cdb }
+	local resolved = dispatcher.resolve_contentdb_package(local_target)
+	assert_eq(dummy_cdb, resolved, "Pre-attached cdb_package must be returned directly")
+end)
+
+test("resolve_contentdb_package resolves modpack with _modpack suffix", function()
+	local target = { name = "mobs_animal_modpack", type = "modpack" }
+	local resolved = dispatcher.resolve_contentdb_package(target)
+	assert_not_nil(resolved, "Must resolve mobs_animal from mobs_animal_modpack")
+	assert_eq("tenplus1/mobs_animal", resolved.id)
+end)
+
+test("resolve_contentdb_package cleans author email in target", function()
+	local target = { name = "mobs_animal", author = "tenplus1 <tenplus1@email.com>", type = "mod" }
+	local resolved = dispatcher.resolve_contentdb_package(target)
+	assert_not_nil(resolved, "Must resolve mobs_animal with email in author field")
+	assert_eq("tenplus1/mobs_animal", resolved.id)
+end)
+
 print(string.format("\nTest Summary: %d passed, %d failed", passed, failed))
 if failed > 0 then
 	os.exit(1)

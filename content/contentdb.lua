@@ -452,7 +452,7 @@ function contentdb.set_packages_from_api(packages)
 			for _, alias in ipairs(package.aliases) do
 				-- We currently only support gameid and author changing
 				if package.type == "game" or alias:sub(-#suffix) == suffix then
-					contentdb.aliases[strip_game_suffix(packages.type, alias:lower())] = package.id
+					contentdb.aliases[strip_game_suffix(package.type, alias:lower())] = package.id
 				end
 			end
 		end
@@ -465,7 +465,22 @@ function contentdb.set_packages_from_api(packages)
 	contentdb.packages_full_unordered = packages
 end
 
+local fetch_callbacks = {}
+
 function contentdb.fetch_pkgs(callback)
+	if contentdb.load_ok and contentdb.packages_full and #contentdb.packages_full > 0 then
+		if callback then callback(contentdb.packages_full) end
+		return
+	end
+
+	if callback then
+		table.insert(fetch_callbacks, callback)
+	end
+
+	if contentdb.loading then
+		return
+	end
+
 	contentdb.loading = true
 	core.handle_async(fetch_pkgs, nil, function(result)
 		if result then
@@ -475,8 +490,60 @@ function contentdb.fetch_pkgs(callback)
 		end
 
 		contentdb.loading = false
-		callback(result)
+		local cbs = fetch_callbacks
+		fetch_callbacks = {}
+		for _, cb in ipairs(cbs) do
+			cb(result)
+		end
 	end)
+end
+
+local cdb_cache_version = nil
+local cdb_lookup_cache = nil
+
+function contentdb.get_package_lookup()
+	local pkgs = contentdb.packages_full or contentdb.packages
+	if not pkgs or #pkgs == 0 then return {} end
+	if cdb_lookup_cache and cdb_cache_version == #pkgs then
+		return cdb_lookup_cache
+	end
+
+	cdb_lookup_cache = {}
+	for _, pkg in ipairs(pkgs) do
+		if pkg.id then
+			cdb_lookup_cache[pkg.id:lower()] = pkg
+		end
+		if pkg.name then
+			local n = pkg.name:lower()
+			if not cdb_lookup_cache[n] or (pkg.score and cdb_lookup_cache[n].score and pkg.score > cdb_lookup_cache[n].score) then
+				cdb_lookup_cache[n] = pkg
+			end
+			-- Strip _game, _modpack suffixes for fallback matching
+			local norm = n:gsub("%_game$", ""):gsub("%_modpack$", "")
+			if norm ~= n and not cdb_lookup_cache[norm] then
+				cdb_lookup_cache[norm] = pkg
+			end
+		end
+	end
+
+	if contentdb.aliases then
+		for alias, pkg_id in pairs(contentdb.aliases) do
+			local target_pkg = (contentdb.package_by_id and contentdb.package_by_id[pkg_id]) or cdb_lookup_cache[pkg_id:lower()]
+			if target_pkg then
+				local a_l = alias:lower()
+				if not cdb_lookup_cache[a_l] then
+					cdb_lookup_cache[a_l] = target_pkg
+				end
+				local cut = a_l:match("[^/]+$")
+				if cut and not cdb_lookup_cache[cut] then
+					cdb_lookup_cache[cut] = target_pkg
+				end
+			end
+		end
+	end
+
+	cdb_cache_version = #pkgs
+	return cdb_lookup_cache
 end
 
 

@@ -153,9 +153,14 @@ end
 local function resolve_contentdb_package(target, fallback_type)
 	if not target then return nil end
 
-	-- 1. If target is already a ContentDB package object
-	if type(target) == "table" and target.url_part and target.release and target.id then
-		return target
+	-- 1. If target already has an attached ContentDB package or is a ContentDB package object
+	if type(target) == "table" then
+		if target.cdb_package then
+			return target.cdb_package
+		end
+		if target.url_part and target.release and target.id then
+			return target
+		end
 	end
 
 	local cdb = rawget(_G, "contentdb")
@@ -163,7 +168,39 @@ local function resolve_contentdb_package(target, fallback_type)
 
 	local pmgr = rawget(_G, "pkgmgr")
 
-	-- 2. Try lookup via pkgmgr.get_contentdb_id
+	-- 2. Check fast lookup index if available
+	if cdb.get_package_lookup then
+		local lookup = cdb.get_package_lookup()
+		if lookup then
+			if type(target) == "table" then
+				if target.id and lookup[target.id:lower()] then
+					return lookup[target.id:lower()]
+				end
+				if target.name then
+					local n_l = target.name:lower()
+					if lookup[n_l] then return lookup[n_l] end
+					local norm = n_l:gsub("%_game$", ""):gsub("%_modpack$", "")
+					if lookup[norm] then return lookup[norm] end
+					norm = norm:gsub("^minetest%-", ""):gsub("%-minetest$", "")
+					if lookup[norm] then return lookup[norm] end
+				end
+				if target.author and target.name then
+					local clean_auth = target.author:match("^([%w%_%-]+)") or target.author
+					local key = clean_auth:lower() .. "/" .. target.name:lower()
+					if lookup[key] then return lookup[key] end
+				end
+			else
+				local s = tostring(target):lower()
+				if lookup[s] then return lookup[s] end
+				local norm = s:gsub("%_game$", ""):gsub("%_modpack$", "")
+				if lookup[norm] then return lookup[norm] end
+				norm = norm:gsub("^minetest%-", ""):gsub("%-minetest$", "")
+				if lookup[norm] then return lookup[norm] end
+			end
+		end
+	end
+
+	-- 3. Try lookup via pkgmgr.get_contentdb_id
 	if type(target) == "table" and pmgr and pmgr.get_contentdb_id then
 		local cdb_id = pmgr.get_contentdb_id(target)
 		if cdb_id then
@@ -178,19 +215,20 @@ local function resolve_contentdb_package(target, fallback_type)
 		end
 	end
 
-	-- 3. Try lookup via author and name
+	-- 4. Try lookup via author and name
 	if type(target) == "table" and target.author and target.author ~= "" and target.name then
+		local clean_auth = target.author:match("^([%w%_%-]+)") or target.author
 		if cdb.get_package_by_info then
-			local p = cdb.get_package_by_info(target.author, target.name)
+			local p = cdb.get_package_by_info(clean_auth, target.name)
 			if p then return p end
 		end
 		if cdb.package_by_id then
-			local p = cdb.package_by_id[target.author:lower() .. "/" .. target.name:lower()]
+			local p = cdb.package_by_id[clean_auth:lower() .. "/" .. target.name:lower()]
 			if p then return p end
 		end
 	end
 
-	-- 4. Search through packages_full or packages list
+	-- 5. Search through packages_full or packages list
 	local t_name, t_title, t_author, t_type
 	if type(target) == "table" then
 		t_name = target.name or target.id
@@ -204,42 +242,60 @@ local function resolve_contentdb_package(target, fallback_type)
 
 	local t_name_l = t_name and t_name:lower()
 	local t_title_l = t_title and t_title:lower()
-	local t_author_l = (t_author and t_author ~= "") and t_author:lower() or nil
+	local t_author_l = (t_author and t_author ~= "") and (t_author:match("^([%w%_%-]+)") or t_author):lower() or nil
 	local t_type_l = t_type and t_type:lower()
+	if t_type_l == "modpack" then t_type_l = "mod" end
 
 	local pkg_list = cdb.packages_full or cdb.packages
 	if pkg_list then
 		if t_name_l then
+			local n_variants = { t_name_l }
+			local norm_v = t_name_l:gsub("%_game$", ""):gsub("%_modpack$", "")
+			if norm_v ~= t_name_l then n_variants[#n_variants + 1] = norm_v end
+			norm_v = norm_v:gsub("^minetest%-", ""):gsub("%-minetest$", "")
+			if norm_v ~= t_name_l and norm_v ~= n_variants[#n_variants] then n_variants[#n_variants + 1] = norm_v end
+			if t_type_l == "game" and not t_name_l:find("_game$") then
+				n_variants[#n_variants + 1] = t_name_l .. "_game"
+			end
+
 			-- Pass 1: exact name + exact type + matching author (if known)
 			if t_author_l then
-				for _, p in ipairs(pkg_list) do
-					if p.name and p.name:lower() == t_name_l and (not t_type_l or p.type == t_type_l) then
-						if p.author and p.author:lower() == t_author_l then
-							return p
+				for _, v_name in ipairs(n_variants) do
+					for _, p in ipairs(pkg_list) do
+						if p.name and p.name:lower() == v_name and (not t_type_l or p.type == t_type_l) then
+							if p.author and p.author:lower() == t_author_l then
+								return p
+							end
 						end
 					end
 				end
 			end
 
 			-- Pass 2: exact name + exact type
-			for _, p in ipairs(pkg_list) do
-				if p.name and p.name:lower() == t_name_l and (not t_type_l or p.type == t_type_l) then
-					return p
+			for _, v_name in ipairs(n_variants) do
+				for _, p in ipairs(pkg_list) do
+					if p.name and p.name:lower() == v_name and (not t_type_l or p.type == t_type_l) then
+						return p
+					end
 				end
 			end
 
 			-- Pass 3: exact name (any type)
-			for _, p in ipairs(pkg_list) do
-				if p.name and p.name:lower() == t_name_l then
-					return p
+			for _, v_name in ipairs(n_variants) do
+				for _, p in ipairs(pkg_list) do
+					if p.name and p.name:lower() == v_name then
+						return p
+					end
 				end
 			end
 
 			-- Pass 4: check aliases
 			if cdb.aliases then
-				local alias_id = cdb.aliases[t_name_l] or cdb.aliases["/" .. t_name_l]
-				if alias_id and cdb.package_by_id and cdb.package_by_id[alias_id] then
-					return cdb.package_by_id[alias_id]
+				for _, v_name in ipairs(n_variants) do
+					local alias_id = cdb.aliases[v_name] or cdb.aliases["/" .. v_name]
+					if alias_id and cdb.package_by_id and cdb.package_by_id[alias_id] then
+						return cdb.package_by_id[alias_id]
+					end
 				end
 			end
 
@@ -310,9 +366,9 @@ local function open_package_details(target, fallback_type, fallback_search)
 		return
 	end
 
-	-- 2. If ContentDB is not yet loaded, trigger fetch and show package when complete
+	-- 2. If ContentDB is not yet loaded or currently fetching, trigger/wait for fetch and show package when complete
 	local cdb = rawget(_G, "contentdb")
-	if cdb and not cdb.load_ok and cdb.fetch_pkgs then
+	if cdb and (not cdb.load_ok or cdb.loading or not cdb.packages_full or #cdb.packages_full == 0) and cdb.fetch_pkgs then
 		cdb.fetch_pkgs(function(result)
 			if result then
 				local resolved = resolve_contentdb_package(target, fallback_type)
@@ -1250,7 +1306,7 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 
 	local function open_package_in_contentdb(pkg)
 		if not pkg then return end
-		open_package_details(pkg, pkg.type or "mod")
+		open_package_details(pkg.cdb_package or pkg, pkg.type or "mod")
 	end
 
 	for k, _ in pairs(fields) do

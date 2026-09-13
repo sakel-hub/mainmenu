@@ -240,26 +240,35 @@ function update_packages()
 	append_items(packages_raw, pkgmgr.texture_packs)
 	append_items(packages_raw, pkgmgr.global_mods:get_list())
 
-	-- Enrich missing package authors from ContentDB cache if available
+	-- Enrich packages with resolved ContentDB package objects and missing authors
 	if _G.contentdb and (_G.contentdb.package_by_id or _G.contentdb.packages_full or _G.contentdb.packages) then
-		local cdb_by_name = nil
+		local cdb_lookup = (_G.contentdb.get_package_lookup and _G.contentdb.get_package_lookup())
 		local cdb_list = _G.contentdb.packages_full or _G.contentdb.packages or {}
 		for _, p in ipairs(packages_raw) do
-			if not p.author or p.author == "" then
-				local cdb_id = pkgmgr.get_contentdb_id and pkgmgr.get_contentdb_id(p)
-				local cdb_p = cdb_id and ((_G.contentdb.get_package_by_id and _G.contentdb.get_package_by_id(cdb_id)) or (_G.contentdb.package_by_id and _G.contentdb.package_by_id[cdb_id]))
-				if not cdb_p and p.name then
-					if not cdb_by_name then
-						cdb_by_name = {}
-						for _, cp in ipairs(cdb_list) do
-							if cp.name and cp.name ~= "" then
-								cdb_by_name[cp.name:lower()] = cp
-							end
-						end
-					end
-					cdb_p = cdb_by_name[p.name:lower()]
+			local cdb_p = p.cdb_package
+			if not cdb_p and cdb_lookup then
+				if p.id and cdb_lookup[p.id:lower()] then
+					cdb_p = cdb_lookup[p.id:lower()]
+				elseif p.name then
+					cdb_p = cdb_lookup[p.name:lower()]
 				end
-				if cdb_p and cdb_p.author and cdb_p.author ~= "" then
+			end
+			if not cdb_p then
+				local cdb_id = pkgmgr.get_contentdb_id and pkgmgr.get_contentdb_id(p)
+				cdb_p = cdb_id and ((_G.contentdb.get_package_by_id and _G.contentdb.get_package_by_id(cdb_id)) or (_G.contentdb.package_by_id and _G.contentdb.package_by_id[cdb_id]))
+			end
+			if not cdb_p and p.name then
+				local n_l = p.name:lower()
+				for _, cp in ipairs(cdb_list) do
+					if cp.name and cp.name:lower() == n_l then
+						cdb_p = cp
+						break
+					end
+				end
+			end
+			if cdb_p then
+				p.cdb_package = cdb_p
+				if cdb_p.author and cdb_p.author ~= "" and (not p.author or p.author == "") then
 					p.author = cdb_p.author
 				end
 			end
