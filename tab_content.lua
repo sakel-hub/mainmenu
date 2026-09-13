@@ -119,8 +119,10 @@ local function get_formspec(_tabview, _name, tabdata)
 		if selected_pkg.type == "game" then
 			title_and_name = selected_pkg.title or selected_pkg.name
 		else
+			local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
+			local muted_col = (th and th.colors and th.colors.text_muted) or "#cbd5e1"
 			title_and_name = (selected_pkg.title or selected_pkg.name) .. "\n" ..
-				core.colorize("#BFBFBF", selected_pkg.name)
+				core.colorize(muted_col, selected_pkg.name)
 		end
 
 		local desc_height = 3.2

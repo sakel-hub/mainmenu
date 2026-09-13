@@ -323,7 +323,7 @@ local function create_world_formspec(dialogdata)
 
 	-- Warning when making a devtest world
 	if game.id == "devtest" then
-		local warn_col = (th and th.colors and th.colors.warn_gold) or "#ff8800"
+		local warn_col = (th and th.colors and th.colors.warn_gold) or "#f59e0b"
 		retval = retval ..
 			"container[0,3.5]" ..
 			"box[0,0;5.8,1.7;" .. warn_col .. "]" ..

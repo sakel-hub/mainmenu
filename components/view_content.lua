@@ -527,7 +527,7 @@ function view_content.render(st, th)
 
 					-- Clickable selection button across the entire row
 					local sel_name = "btn_select_pkg_" .. i
-					table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", sel_name))
+					table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", sel_name, th.colors.transparent))
 					table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", sel_name, th.colors.list_hover_bg))
 					table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", sel_name, th.colors.list_pressed_bg))
 					table.insert(fs, string.format("button[0.00,%.2f;%.2f,0.44;%s;]", cur_y, row_w, sel_name))
@@ -635,7 +635,7 @@ function view_content.render(st, th)
 
 				-- Whole-tile clickable button (under text/modpack expander, transparent with subtle hover)
 				local select_btn_name = "btn_select_pkg_" .. i
-				table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", select_btn_name))
+				table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", select_btn_name, th.colors.transparent))
 				table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", select_btn_name, th.colors.list_hover_bg))
 				table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", select_btn_name, th.colors.list_pressed_bg))
 				table.insert(fs, string.format("button[0.00,%.2f;%.2f,%.2f;%s;]", card_y, card_w, base_card_h, select_btn_name))
@@ -698,8 +698,9 @@ function view_content.render(st, th)
 						is_expanded and th.colors.card_active_bg or th.colors.card_inner_bg,
 						is_expanded and th.colors.brand_green or th.colors.card_border_light,
 						is_expanded and th.colors.brand_green_dark or th.colors.card_border_dark))
-					table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000;textcolor=%s;font=bold;%s]",
+					table.insert(fs, string.format("style[%s;border=false;bgcolor=%s;textcolor=%s;font=bold;%s]",
 						toggle_btn_name,
+						th.colors.transparent,
 						is_expanded and th.colors.brand_green_hover or th.colors.brand_cyan,
 						th.font_size("caption")))
 					table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s;textcolor=%s;font=bold;%s]",
@@ -731,7 +732,7 @@ function view_content.render(st, th)
 
 							-- Interactive transparent button covering child mod sub-tile
 							local child_btn_name = string.format("btn_select_child_%d_%d", i, c_idx)
-							table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", child_btn_name))
+							table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", child_btn_name, th.colors.transparent))
 							table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", child_btn_name, th.colors.list_hover_bg))
 							table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", child_btn_name, th.colors.list_pressed_bg))
 							table.insert(fs, string.format("button[0.50,%.2f;10.40,%.2f;%s;]", card_y + 0.05, sub_h, child_btn_name))

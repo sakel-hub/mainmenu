@@ -317,11 +317,15 @@ local function get_formspec(dlgdata)
 	local text_w = cell_w - img_w - 0.25 - 0.025
 	local text_h = cell_h - 0.25 - 0.025
 
+	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
+	local muted_col = (th and th.colors and th.colors.text_muted) or "#cbd5e1"
+	local transparent_col = (th and th.colors and th.colors.transparent) or "#00000000"
+
 	local start_idx = (cur_page - 1) * num_per_page + 1
 	for i=start_idx, math.min(#contentdb.packages, start_idx+num_per_page-1) do
 		local package = contentdb.packages[i]
 		local text = core.colorize(mt_color_green, package.title) ..
-			core.colorize("#BFBFBF", " by " .. package.author) .. "\n" ..
+			core.colorize(muted_col, " by " .. package.author) .. "\n" ..
 			package.short_description
 
 		table.insert_all(formspec, {
@@ -346,7 +350,7 @@ local function get_formspec(dlgdata)
 				-- avoid everything being one long line.
 				core.formspec_escape(core.wrap_text(package.short_description, 80)), "]",
 
-			"style[view_", i, ";border=false;bgcolor=#00000000]",
+			"style[view_", i, ";border=false;bgcolor=", transparent_col, "]",
 			"style[view_", i, ":hovered;border=false;bgcolor=#1b3a4f]",
 			"style[view_", i, ":pressed;border=false;bgcolor=#0b1924]",
 			"button[0,0;", cell_w, ",", cell_h, ";view_", i, ";]",

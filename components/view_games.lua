@@ -322,7 +322,7 @@ function view_games.render(st, th)
 		end
 
 		-- Whole-card clickable button overlay (covers upper interactive area, leaving bottom buttons accessible)
-		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", select_btn_name))
+		table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", select_btn_name, th.colors.transparent))
 		table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", select_btn_name, th.colors.list_hover_bg))
 		table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", select_btn_name, th.colors.list_pressed_bg))
 		table.insert(fs, string.format("button[%f,%f;%f,2.70;%s;]", cx, cy, card_w, select_btn_name))

@@ -4,20 +4,7 @@
 local function direct_connect_formspec(dialogdata)
 	dialogdata = dialogdata or {}
 	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
-	local c = th and th.colors or {
-		btn_secondary_bg = "#1e3852aa",
-		btn_secondary_hover = "#2d557caa",
-		btn_secondary_pressed = "#162c42cc",
-		btn_secondary_focus = "#38bdf8",
-		btn_primary_bg = "#16a34a",
-		btn_primary_hover = "#22c55e",
-		btn_primary_pressed = "#14532d",
-		btn_primary_pressed_text = "#86efac",
-		btn_primary_focus = "#4ade80",
-		btn_danger_bg = "#7f1d1d",
-		text_muted = "#cbd5e1",
-		text_primary = "#ffffff",
-	}
+	local c = (th and th.colors) or {}
 
 	local fs = {
 		"formspec_version[7]",

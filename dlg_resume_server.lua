@@ -5,26 +5,7 @@
 local function resume_server_formspec(dialogdata)
 	dialogdata = dialogdata or {}
 	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
-	local c = th and th.colors or {
-		btn_secondary_bg = "#1e3852aa",
-		btn_secondary_hover = "#2d557caa",
-		btn_secondary_pressed = "#162c42cc",
-		btn_secondary_focus = "#38bdf8",
-		btn_primary_bg = "#16a34a",
-		btn_primary_hover = "#22c55e",
-		btn_primary_pressed = "#14532d",
-		btn_primary_pressed_text = "#86efac",
-		btn_primary_focus = "#4ade80",
-		btn_danger_bg = "#dc2626",
-		card_bg = "#0f1f33f0",
-		card_inner_bg = "#0b1724cc",
-		card_border_light = "#38bdf844",
-		card_border_dark = "#0c1520cc",
-		brand_cyan = "#06b6d4",
-		brand_green_hover = "#22c55e",
-		text_muted = "#cbd5e1",
-		text_primary = "#ffffff",
-	}
+	local c = (th and th.colors) or {}
 
 	local s_name = dialogdata.server and (dialogdata.server.name or dialogdata.server.address) or dialogdata.address or "Server"
 	local s_addr = dialogdata.address or (dialogdata.server and dialogdata.server.address) or ""

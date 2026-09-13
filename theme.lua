@@ -8,6 +8,7 @@ theme.colors = {
 	-- Translucent Backgrounds & Glassmorphic Panels
 	backdrop                 = "#00000000", -- Fully transparent to prevent compounding layers
 	backdrop_overlay         = "#08131e33", -- Sheer atmospheric tint (~20% opacity) so 3D sky/clouds shine through
+	transparent              = "#00000000", -- Fully transparent color
 	sidebar_bg               = "#0b172455", -- Frosted translucent sidebar glass (~33% opacity)
 	sidebar_border           = "#25405c55",
 	content_bg               = "#00000000",

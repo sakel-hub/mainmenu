@@ -7,6 +7,7 @@
 local function register_formspec(dialogdata)
 	dialogdata = dialogdata or {}
 	local th = (mainmenu and mainmenu.theme) or rawget(_G, "theme") or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
+	local c = (th and th.colors) or {}
 	-- TRANSLATORS: Message when joining a server
 	local title = fgettext("Joining $1", dialogdata.server and dialogdata.server.name or dialogdata.address)
 	local buttons_y = 4 + 1.3
@@ -28,10 +29,10 @@ local function register_formspec(dialogdata)
 	end
 
 	if th and th.label then
-		table.insert(retval, th.label(0.375, 0.8, title, "title", "#f1f5f9", "bold"))
+		table.insert(retval, th.label(0.375, 0.8, title, "title", c.text_secondary or "#f1f5f9", "bold"))
 	else
 		table.insert_all(retval, {
-			"style_type[label;font=bold;textcolor=#f1f5f9]",
+			"style_type[label;font=bold;textcolor=" .. (c.text_secondary or "#f1f5f9") .. "]",
 			"label[0.375,0.8;", title, "]",
 		})
 	end
@@ -77,8 +78,8 @@ local function register_formspec(dialogdata)
 
 	if dialogdata.error then
 		table.insert_all(retval, {
-			"box[0.375,", tostring(buttons_y - 0.9), ";7.25,0.6;#dc2626]",
-			"style_type[label;font=bold;textcolor=#ffffff]",
+			"box[0.375,", tostring(buttons_y - 0.9), ";7.25,0.6;", (c.btn_danger_bg or "#dc2626"), "]",
+			"style_type[label;font=bold;textcolor=", (c.text_primary or "#ffffff"), "]",
 			"label[0.625,", tostring(buttons_y - 0.6), ";", core.formspec_escape(dialogdata.error), "]",
 		})
 	end

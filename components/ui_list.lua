@@ -137,10 +137,10 @@ function ui_list.render_header(fs, params)
 		local col_w = col.header_w or col.w
 
 		-- Hover and pressed styling on the transparent clickable header button
-		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", btn_name))
+		table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", btn_name, th.colors.transparent))
 		table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_hover_bg))
 		table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_pressed_bg))
-		table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", btn_name))
+		table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=%s]", btn_name, th.colors.transparent))
 
 		table.insert(fs, string.format("button[%.2f,%.2f;%.2f,%.2f;%s;]", col_x, hy, col_w, hh, btn_name))
 		if col.tip then
@@ -209,10 +209,10 @@ function ui_list.render_row(fs, params)
 				local cell_btn = string.format("%s_%d", btn_name, c_idx)
 				local tip_content = (cell.tooltip and cell.tooltip ~= "") and cell.tooltip or params.tooltip
 
-				table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", cell_btn))
+				table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", cell_btn, th.colors.transparent))
 				table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=%s]", cell_btn, th.colors.list_hover_bg))
 				table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=%s]", cell_btn, th.colors.list_pressed_bg))
-				table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", cell_btn))
+				table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=%s]", cell_btn, th.colors.transparent))
 				table.insert(fs, string.format("button[%.2f,%.2f;%.2f,%.2f;%s;]", cx, y, cw, h, cell_btn))
 
 				if tip_content and tip_content ~= "" then
@@ -220,10 +220,10 @@ function ui_list.render_row(fs, params)
 				end
 			end
 		else
-			table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", btn_name))
+			table.insert(fs, string.format("style[%s;border=false;bgcolor=%s]", btn_name, th.colors.transparent))
 			table.insert(fs, string.format("style[%s:hovered;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_hover_bg))
 			table.insert(fs, string.format("style[%s:pressed;border=false;sound=ui_click;bgcolor=%s]", btn_name, th.colors.list_pressed_bg))
-			table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=#00000000]", btn_name))
+			table.insert(fs, string.format("style[%s:focused;border=false;bgcolor=%s]", btn_name, th.colors.transparent))
 			table.insert(fs, string.format("button[0.00,%.2f;%.2f,%.2f;%s;]", y, w, h, btn_name))
 
 			if params.tooltip and params.tooltip ~= "" then

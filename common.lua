@@ -115,15 +115,7 @@ function render_serverlist_row(spec)
 	table.insert(details, ",")
 
 	local th = (mainmenu and mainmenu.theme) or (custom_menupath and dofile(custom_menupath .. DIR_DELIM .. "theme.lua"))
-	local c = th and th.colors or {
-		grey_out = "#aaaaaa",
-		status_fav = "#fde047",
-		text_primary = "#ffffff",
-		clients_med = "#4ade80",
-		clients_high = "#facc15",
-		clients_max = "#ef4444",
-		clients_orange = "#fb923c",
-	}
+	local c = (th and th.colors) or {}
 
 	local color = (grey_out and c.grey_out) or ((spec.is_favorite and c.status_fav) or c.text_primary)
 	if spec.clients and (spec.clients_max or 0) > 0 then
