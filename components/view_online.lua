@@ -14,6 +14,13 @@ local function safe_trim(s)
 	return tostring(s):match("^%s*(.-)%s*$") or ""
 end
 
+local function ht_escape(s)
+	if core and core.hypertext_escape then
+		return core.hypertext_escape(s)
+	end
+	return tostring(s or ""):gsub("[<>&]", {["<"] = "&lt;", [">"] = "&gt;", ["&"] = "&amp;"})
+end
+
 local function format_client_count(n)
 	if not n or n < 0 then return "?" end
 	if n > 999 then return "99+" end
@@ -1310,65 +1317,73 @@ function view_online.render(st, th)
 				end
 			else
 				local is_loc = (sel_local_type ~= nil)
-				table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. (is_loc and th.colors.brand_green_hover or th.colors.warn_gold) .. "]")
-				local no_mods_title = is_loc
-					and fgettext("Direct / Local Network Server")
-					or fgettext("No custom mods reported.")
-				table.insert(fs, string.format("label[12.75,4.75;%s]", core.formspec_escape(no_mods_title)))
+				local title_col = is_loc and th.colors.brand_green_hover or th.colors.warn_gold
+				local f_ne = fgettext_ne or fgettext or function(s) return s end
+				local header_text = is_loc
+					and f_ne("Direct / Local Network Server")
+					or f_ne("No custom mods reported.")
+				local section_text = is_loc
+					and f_ne("Direct Connection Details:")
+					or f_ne("Possible Reasons:")
 
-				table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.text_primary .. "]")
-				table.insert(fs, string.format("label[12.75,5.20;%s]",
-					core.formspec_escape(is_loc and fgettext("Direct Connection Details:") or fgettext("Possible Reasons:"))))
-
-				local r_bullet = "  • "
+				local bullets
 				if is_loc then
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,5.65;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Private Server"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,5.95;%s]",
-						core.formspec_escape(fgettext("Server is private and not indexed on public server lists."))))
-
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,6.45;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Automatic Media Sync"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,6.75;%s]",
-						core.formspec_escape(fgettext("All active server mods and media download upon joining."))))
-
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,7.25;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Local Direct Access"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,7.55;%s]",
-						core.formspec_escape(fgettext("Directly joinable without internet routing or port forwarding."))))
+					bullets = {
+						{
+							title = f_ne("Private Server"),
+							desc  = f_ne("Server is private and not indexed on public server lists."),
+						},
+						{
+							title = f_ne("Automatic Media Sync"),
+							desc  = f_ne("All active server mods and media download upon joining."),
+						},
+						{
+							title = f_ne("Local Direct Access"),
+							desc  = f_ne("Directly joinable without internet routing or port forwarding."),
+						},
+					}
 				else
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,5.65;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Pure Vanilla server"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,5.95;%s]",
-						core.formspec_escape(fgettext("Runs unmodified game without extra mods."))))
-
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,6.45;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Modlist not broadcast"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,6.75;%s]",
-						core.formspec_escape(fgettext("Server keeps active mod names hidden."))))
-
-					table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_cyan .. "]")
-					table.insert(fs, string.format("label[12.75,7.25;%s]",
-						core.formspec_escape(r_bullet .. fgettext("Server-side dynamic content"))))
-					table.insert(fs, "style_type[label;font=normal;font_size=+0;textcolor=" .. th.colors.text_secondary .. "]")
-					table.insert(fs, string.format("label[13.15,7.55;%s]",
-						core.formspec_escape(fgettext("Required media downloads upon joining."))))
+					bullets = {
+						{
+							title = f_ne("Pure Vanilla server"),
+							desc  = f_ne("Runs unmodified game without extra mods."),
+						},
+						{
+							title = f_ne("Modlist not broadcast"),
+							desc  = f_ne("Server keeps active mod names hidden."),
+						},
+						{
+							title = f_ne("Server-side dynamic content"),
+							desc  = f_ne("Required media downloads upon joining."),
+						},
+					}
 				end
 
-				-- Helpful pointer to Engine tab for base game details
-				table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("caption"), th.colors.brand_green_hover))
-				table.insert(fs, string.format("label[12.75,8.05;%s]",
-					core.formspec_escape(fgettext("ℹ Switch to Engine tab to view Base Game & rules"))))
+				local ht_parts = {
+					string.format("<global background=none margin=0 valign=top color=%s font=normal halign=left>", th.colors.text_secondary),
+					string.format("<tag name=title color=%s font=normal>", title_col),
+					string.format("<tag name=section color=%s font=normal>", th.colors.text_primary),
+					string.format("<tag name=bullet color=%s font=normal>", th.colors.brand_cyan),
+					string.format("<tag name=desc color=%s font=normal>", th.colors.text_secondary),
+					string.format("<title><b>%s</b></title>\n", ht_escape(header_text)),
+					string.format("<section><b>%s</b></section>\n", ht_escape(section_text)),
+				}
+
+				for _, b in ipairs(bullets) do
+					table.insert(ht_parts, string.format("\n<bullet><b>• %s</b></bullet>\n", ht_escape(b.title)))
+					table.insert(ht_parts, string.format("<desc>%s</desc>\n", ht_escape(b.desc)))
+				end
+
+				local markup = table.concat(ht_parts, "")
+				table.insert(fs, string.format("hypertext[12.75,4.60;4.90,3.10;server_mod_info;%s]", core.formspec_escape(markup)))
+
+				-- Interactive secondary button to switch directly to the Engine tab
+				table.insert(fs, th.button_secondary(
+					12.75, 7.78, 4.90, 0.46,
+					"btn_tile_engine",
+					"ℹ " .. fgettext("Switch to Engine tab for rules"),
+					fgettext("View engine compatibility and gameplay rules")
+				))
 			end
 
 		else
