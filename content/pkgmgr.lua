@@ -837,14 +837,6 @@ function pkgmgr.refresh_game_last_played()
 				end
 				f:close()
 			end
-			if ts <= 0 and io.popen then
-				local handle = io.popen(cmd)
-				if handle then
-					local out = handle:read("*a")
-					handle:close()
-					ts = tonumber(out and out:match("%d+")) or 0
-				end
-			end
 			if ts > (game_last_played_cache[norm_id] or 0) then
 				game_last_played_cache[norm_id] = ts
 				if g_obj and g_obj.id then

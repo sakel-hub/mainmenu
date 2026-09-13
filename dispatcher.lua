@@ -389,29 +389,43 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	----------------------------------------------------------------------------
 	-- 4. Game Selection & Switching
 	----------------------------------------------------------------------------
-	for _, game in ipairs((pkgmgr and pkgmgr.games) or {}) do
-		if fields["btn_choose_game_" .. game.id] or fields["game_select_" .. game.id] then
-			st.set("selected_game_id", game.id)
-			if apply_game then
-				apply_game(game)
+	for f_key, _ in pairs(fields) do
+		local gid = f_key:match("^btn_choose_game_(.+)$") or f_key:match("^game_select_(.+)$")
+		if gid then
+			local game = nil
+			if pkgmgr and pkgmgr.find_by_gameid then
+				game = pkgmgr.find_by_gameid(gid)
 			end
-			if pkgmgr and pkgmgr.normalize_game_id then
-				local norm_gid = pkgmgr.normalize_game_id(game.id)
-				core.settings:set("game_last_played_" .. norm_gid, tostring(os.time()))
-				if pkgmgr.refresh_game_last_played then
-					pkgmgr.refresh_game_last_played()
+			if not game and pkgmgr and pkgmgr.games then
+				for _, g in ipairs(pkgmgr.games) do
+					if g.id == gid or (pkgmgr.normalize_game_id and pkgmgr.normalize_game_id(g.id) == pkgmgr.normalize_game_id(gid)) then
+						game = g
+						break
+					end
 				end
 			end
-			if mainmenu and mainmenu.sync_game_theme then
-				mainmenu.sync_game_theme(true)
+			if game then
+				st.set("selected_game_id", game.id)
+				if apply_game then
+					apply_game(game)
+				end
+				if pkgmgr and pkgmgr.normalize_game_id then
+					local norm_gid = pkgmgr.normalize_game_id(game.id)
+					core.settings:set("game_last_played_" .. norm_gid, tostring(os.time()))
+				end
+				if mainmenu and mainmenu.sync_game_theme then
+					mainmenu.sync_game_theme(true)
+				end
+				st.set("viewing_game_details", nil)
+				st.save_persistent()
+				return true
 			end
-			st.set("viewing_game_details", nil)
-			st.save_persistent()
-			return true
 		end
-		if fields["btn_game_info_" .. game.id] then
+
+		local info_gid = f_key:match("^btn_game_info_(.+)$")
+		if info_gid then
 			local cur = st.get("viewing_game_details")
-			st.set("viewing_game_details", (cur == game.id) and nil or game.id)
+			st.set("viewing_game_details", (cur == info_gid) and nil or info_gid)
 			return true
 		end
 	end

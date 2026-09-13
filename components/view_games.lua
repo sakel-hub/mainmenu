@@ -220,7 +220,16 @@ function view_games.render(st, th)
 	-- Center Grid: Installed Games + ContentDB Card (4 Columns, Scrollable)
 	----------------------------------------------------------------------------
 	local current_game_id = (st.get and st.get("selected_game_id")) or st.selected_game_id or core.settings:get("menu_last_game")
-	local games_list = (pkgmgr.get_games_by_last_played and pkgmgr.get_games_by_last_played()) or (pkgmgr.games or {})
+	local active_game_obj = nil
+	if current_game_id and pkgmgr and pkgmgr.find_by_gameid then
+		active_game_obj = pkgmgr.find_by_gameid(current_game_id)
+	end
+
+	-- Maintain a stable grid order during the current menu session so clicking doesn't jump cards
+	if not view_games._session_games_list or #view_games._session_games_list ~= #(pkgmgr.games or {}) then
+		view_games._session_games_list = (pkgmgr.get_games_by_last_played and pkgmgr.get_games_by_last_played()) or (pkgmgr.games or {})
+	end
+	local games_list = view_games._session_games_list
 	local games_scroll = (st.get and st.get("games_scroll")) or st.games_scroll or 0
 
 	local total_items = #games_list -- Installed games only (ContentDB moved to bottom action bar)
@@ -251,7 +260,15 @@ function view_games.render(st, th)
 		local cx = start_x + (col - 1) * (card_w + gap_x)
 		local cy = start_y + (row - 1) * (card_h + gap_y)
 
-		local is_active = (game.id == current_game_id)
+		local is_active = false
+		if active_game_obj and active_game_obj.id == game.id then
+			is_active = true
+		elseif game.id == current_game_id then
+			is_active = true
+		elseif pkgmgr and pkgmgr.normalize_game_id and current_game_id then
+			is_active = (pkgmgr.normalize_game_id(game.id) == pkgmgr.normalize_game_id(current_game_id))
+		end
+
 		if is_active then
 			current_game_obj = game
 		end
@@ -262,6 +279,7 @@ function view_games.render(st, th)
 
 		local btn_name = "btn_choose_game_" .. game.id
 		local btn_info_name = "btn_game_info_" .. game.id
+		local select_btn_name = "game_select_" .. game.id
 		local title = game.title or game.id
 		local icon = defaulttexturedir .. "logo.png"
 		if (game.menuicon_path or "") ~= "" then
@@ -271,14 +289,31 @@ function view_games.render(st, th)
 		end
 
 		if is_active then
-			-- Active green highlight card (translucent emerald glass)
-			table.insert(fs, th.voxel_box(cx, cy, card_w, card_h, th.colors.card_active_bg, th.colors.brand_green, th.colors.brand_green_dark))
-			table.insert(fs, string.format("box[%f,%f;%f,0.06;%s]", cx, cy, card_w, th.colors.brand_green_hover))
-			table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=" .. th.colors.brand_green_light .. "]")
-			table.insert(fs, string.format("label[%f,%f;%s]", cx + 0.3, cy + 0.35, core.formspec_escape(fgettext("ACTIVE"))))
+			-- Active green highlight card (rich glowing emerald glass)
+			local active_card_bg = "#123d24aa"
+			table.insert(fs, string.format("box[%f,%f;%f,%f;%s]", cx, cy, card_w, card_h, active_card_bg))
+			-- Prominent voxel emerald borders on all 4 edges
+			table.insert(fs, string.format("box[%f,%f;%f,0.055;%s]", cx, cy, card_w, th.colors.brand_green_hover))
+			table.insert(fs, string.format("box[%f,%f;0.055,%f;%s]", cx, cy, card_h, th.colors.brand_green_hover))
+			table.insert(fs, string.format("box[%f,%f;%f,0.055;%s]", cx, cy + card_h - 0.055, card_w, th.colors.brand_green_dark))
+			table.insert(fs, string.format("box[%f,%f;0.055,%f;%s]", cx + card_w - 0.055, cy, card_h, th.colors.brand_green))
+			-- Luminous top accent bar
+			table.insert(fs, string.format("box[%f,%f;%f,0.08;%s]", cx, cy, card_w, th.colors.brand_green_light))
+			-- Prominent emerald status badge pill in top-left corner
+			table.insert(fs, string.format("box[%f,%f;1.38,0.36;%s]", cx + 0.22, cy + 0.22, th.colors.brand_green_badge or "#166534"))
+			table.insert(fs, string.format("box[%f,%f;1.38,0.02;%s]", cx + 0.22, cy + 0.22, th.colors.brand_green_hover))
+			table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=#ffffff]")
+			table.insert(fs, string.format("label[%f,%f;%s]", cx + 0.32, cy + 0.28, core.formspec_escape("✓ " .. fgettext("ACTIVE"))))
 		else
 			table.insert(fs, th.voxel_box(cx, cy, card_w, card_h, th.colors.card_bg, th.colors.card_border_light, th.colors.card_border_dark))
 		end
+
+		-- Whole-card clickable button overlay (covers upper interactive area, leaving bottom buttons accessible)
+		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", select_btn_name))
+		table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=#3e6c9c22]", select_btn_name))
+		table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=#1d365044]", select_btn_name))
+		table.insert(fs, string.format("button[%f,%f;%f,2.70;%s;]", cx, cy, card_w, select_btn_name))
+		table.insert(fs, th.tooltip(select_btn_name, is_active and fgettext("'$1' is currently active", title) or fgettext("Click to activate '$1'", title)))
 
 		-- Game Icon (Horizontally Centered in Card)
 		local icon_x = cx + (card_w - 1.4) / 2
@@ -288,12 +323,12 @@ function view_games.render(st, th)
 		table.insert(fs, string.format("style_type[label;font=bold;%s;textcolor=%s]", th.font_size("subtitle"), (is_active and th.colors.brand_green_hover or th.colors.text_primary)))
 		table.insert(fs, string.format("label[%f,%f;%s]", cx + 0.3, cy + 2.05, core.formspec_escape(title:sub(1, 20))))
 
-		table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), th.colors.text_muted))
+		table.insert(fs, string.format("style_type[label;font=normal;%s;textcolor=%s]", th.font_size("caption"), (is_active and th.colors.brand_green_light or th.colors.text_muted)))
 		local subtitle = (game.author and ("by " .. game.author:sub(1, 18))) or game.id
 		table.insert(fs, string.format("label[%f,%f;%s]", cx + 0.3, cy + 2.42, core.formspec_escape(subtitle)))
 
 		-- Dual Action Buttons: ACTIVATE/CURRENT + More Info
-		local btn_label = is_active and fgettext("CURRENT") or fgettext("ACTIVATE")
+		local btn_label = is_active and ("✓ " .. fgettext("CURRENT")) or fgettext("ACTIVATE")
 		local btn_act_w = needs_scroll and 2.55 or 2.65
 		local btn_info_w = needs_scroll and 0.95 or 1.00
 		local info_x = cx + 0.25 + btn_act_w + 0.05
@@ -418,8 +453,9 @@ function view_games.render(st, th)
 		table.insert(fs, string.format("label[3.75,4.15;%s]", core.formspec_escape(fgettext("Game Description & Information:"))))
 		table.insert(fs, string.format("textarea[3.75,4.60;10.8,4.3;;;%s]", core.formspec_escape(d_desc)))
 
-		-- Modal Actions
-		local is_d_active = (detailed_game_obj.id == current_game_id)
+		local is_d_active = (active_game_obj and active_game_obj.id == detailed_game_obj.id)
+			or (detailed_game_obj.id == current_game_id)
+			or (pkgmgr and pkgmgr.normalize_game_id and current_game_id and pkgmgr.normalize_game_id(detailed_game_obj.id) == pkgmgr.normalize_game_id(current_game_id))
 		if not is_d_active then
 			local sel_name = "btn_choose_game_" .. detailed_game_obj.id
 			table.insert(fs, th.button_primary(3.55, 9.40, 6.8, 0.85, sel_name, fgettext("ACTIVATE GAME")))
