@@ -299,11 +299,6 @@ function view_games.render(st, th)
 			table.insert(fs, string.format("box[%f,%f;0.055,%f;%s]", cx + card_w - 0.055, cy, card_h, th.colors.brand_green))
 			-- Luminous top accent bar
 			table.insert(fs, string.format("box[%f,%f;%f,0.08;%s]", cx, cy, card_w, th.colors.brand_green_light))
-			-- Prominent emerald status badge pill in top-left corner
-			table.insert(fs, string.format("box[%f,%f;1.38,0.36;%s]", cx + 0.22, cy + 0.22, th.colors.brand_green_badge or "#166534"))
-			table.insert(fs, string.format("box[%f,%f;1.38,0.02;%s]", cx + 0.22, cy + 0.22, th.colors.brand_green_hover))
-			table.insert(fs, "style_type[label;font=bold;font_size=+0;textcolor=#ffffff]")
-			table.insert(fs, string.format("label[%f,%f;%s]", cx + 0.32, cy + 0.28, core.formspec_escape("✓ " .. fgettext("ACTIVE"))))
 		else
 			table.insert(fs, th.voxel_box(cx, cy, card_w, card_h, th.colors.card_bg, th.colors.card_border_light, th.colors.card_border_dark))
 		end
