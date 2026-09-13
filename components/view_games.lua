@@ -3,13 +3,30 @@
 
 local view_games = {}
 
-local function get_world_count_for_game(gameid)
-	if not menudata.worldlist or not gameid then return 0 end
-	local norm_target = pkgmgr.normalize_game_id(gameid)
+local function get_world_counts()
+	local counts = {}
+	if not menudata.worldlist then return counts end
+	local list = (menudata.worldlist.get_raw_list and menudata.worldlist:get_raw_list()) or menudata.worldlist:get_list() or {}
+	for _, w in ipairs(list) do
+		if w.gameid then
+			local norm = pkgmgr.normalize_game_id(w.gameid)
+			counts[norm] = (counts[norm] or 0) + 1
+		end
+	end
+	return counts
+end
+
+local function get_world_count_for_game(gameid, counts)
+	if not gameid then return 0 end
+	local norm = pkgmgr.normalize_game_id(gameid)
+	if counts then
+		return counts[norm] or 0
+	end
+	if not menudata.worldlist then return 0 end
 	local count = 0
 	local list = (menudata.worldlist.get_raw_list and menudata.worldlist:get_raw_list()) or menudata.worldlist:get_list() or {}
 	for _, w in ipairs(list) do
-		if w.gameid and pkgmgr.normalize_game_id(w.gameid) == norm_target then
+		if w.gameid and pkgmgr.normalize_game_id(w.gameid) == norm then
 			count = count + 1
 		end
 	end
@@ -224,6 +241,7 @@ function view_games.render(st, th)
 	if current_game_id and pkgmgr and pkgmgr.find_by_gameid then
 		active_game_obj = pkgmgr.find_by_gameid(current_game_id)
 	end
+	local world_counts = get_world_counts()
 
 	-- Maintain a stable grid order during the current menu session so clicking doesn't jump cards
 	if not view_games._session_games_list or #view_games._session_games_list ~= #(pkgmgr.games or {}) then
@@ -290,7 +308,7 @@ function view_games.render(st, th)
 
 		if is_active then
 			-- Active green highlight card (rich glowing emerald glass)
-			local active_card_bg = "#123d24aa"
+			local active_card_bg = th.colors.card_active_bg
 			table.insert(fs, string.format("box[%f,%f;%f,%f;%s]", cx, cy, card_w, card_h, active_card_bg))
 			-- Prominent voxel emerald borders on all 4 edges
 			table.insert(fs, string.format("box[%f,%f;%f,0.055;%s]", cx, cy, card_w, th.colors.brand_green_hover))
@@ -305,8 +323,8 @@ function view_games.render(st, th)
 
 		-- Whole-card clickable button overlay (covers upper interactive area, leaving bottom buttons accessible)
 		table.insert(fs, string.format("style[%s;border=false;bgcolor=#00000000]", select_btn_name))
-		table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=#3e6c9c22]", select_btn_name))
-		table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=#1d365044]", select_btn_name))
+		table.insert(fs, string.format("style[%s:hovered;border=false;bgcolor=%s]", select_btn_name, th.colors.list_hover_bg))
+		table.insert(fs, string.format("style[%s:pressed;border=false;bgcolor=%s]", select_btn_name, th.colors.list_pressed_bg))
 		table.insert(fs, string.format("button[%f,%f;%f,2.70;%s;]", cx, cy, card_w, select_btn_name))
 		table.insert(fs, th.tooltip(select_btn_name, is_active and fgettext("'$1' is currently active", title) or fgettext("Click to activate '$1'", title)))
 
@@ -366,7 +384,7 @@ function view_games.render(st, th)
 	end
 
 	local active_game_title = (current_game_obj and current_game_obj.title) or (current_game_id or "Luanti")
-	local active_world_count = get_world_count_for_game(current_game_id)
+	local active_world_count = get_world_count_for_game(current_game_id, world_counts)
 	local active_game_icon = defaulttexturedir .. "logo.png"
 	if current_game_obj then
 		if (current_game_obj.menuicon_path or "") ~= "" then
@@ -420,7 +438,7 @@ function view_games.render(st, th)
 	-- Expandable Game Details Modal Overlay (if open)
 	----------------------------------------------------------------------------
 	if detailed_game_obj then
-		table.insert(fs, "box[0,0;18.3,12.0;#07121bcc]") -- backdrop overlay
+		table.insert(fs, string.format("box[0,0;18.3,12.0;%s]", th.colors.card_expanded_bg)) -- backdrop overlay
 		table.insert(fs, th.voxel_box(3.15, 1.5, 12.0, 9.0, th.colors.card_bg, th.colors.brand_green, th.colors.brand_green_dark))
 		table.insert(fs, string.format("box[3.15,1.5;12.0,0.06;%s]", th.colors.brand_green_hover))
 
