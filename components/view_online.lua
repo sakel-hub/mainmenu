@@ -327,6 +327,7 @@ local function get_filtered_servers(st)
 	local query = parse_search_query(st.server_search_query)
 	local favs = serverlistmgr.get_favorites() or {}
 	local taken_favs = {}
+	local result = serverlistmgr.servers or {}
 	-- Build O(1) favorite lookup map by address:port to avoid O(N*M) nested iterations
 	local fav_map = {}
 	for index, fav in ipairs(favs) do
