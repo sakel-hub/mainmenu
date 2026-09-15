@@ -3,10 +3,61 @@
 
 local dispatcher = {}
 
-local function configure_selected_world(idx)
-	local list = menudata.worldlist:get_list()
-	if list and list[idx] then
-		local worldconfig = pkgmgr.get_worldconfig(list[idx].path)
+local function get_selected_world_spec(st)
+	local all_worlds = core.get_worlds()
+	local list = menudata.worldlist and menudata.worldlist:get_list()
+	local idx = st.selected_world_index or (st.get and st.get("selected_world_index")) or 1
+	local cur = list and list[idx]
+
+	local target_path = (cur and cur.path)
+		or (st.get and st.get("selected_world_path"))
+		or st.selected_world_path
+		or (menudata.selected_world and menudata.selected_world.path)
+
+	if target_path then
+		for i, w in ipairs(all_worlds) do
+			if w.path == target_path then
+				return i, w
+			end
+		end
+	end
+
+	if menudata.worldlist and menudata.worldlist.get_raw_index then
+		local r = menudata.worldlist:get_raw_index(idx)
+		if r and r > 0 and all_worlds[r] then
+			return r, all_worlds[r]
+		end
+	end
+
+	if cur and cur.name then
+		for i, w in ipairs(all_worlds) do
+			if w.name == cur.name and (not cur.gameid or w.gameid == cur.gameid) then
+				return i, w
+			end
+		end
+	end
+
+	if all_worlds[idx] then
+		return idx, all_worlds[idx]
+	end
+
+	return 1, all_worlds[1]
+end
+
+local function configure_selected_world(target)
+	local path = nil
+	if type(target) == "string" then
+		path = target
+	elseif type(target) == "table" and target.path then
+		path = target.path
+	elseif type(target) == "number" then
+		local list = menudata.worldlist and menudata.worldlist:get_list()
+		if list and list[target] then
+			path = list[target].path
+		end
+	end
+	if path then
+		local worldconfig = pkgmgr.get_worldconfig(path)
 		if worldconfig then
 			if worldconfig.creative_mode ~= nil then
 				core.settings:set("creative_mode", worldconfig.creative_mode)
@@ -19,15 +70,12 @@ local function configure_selected_world(idx)
 end
 
 local function launch_selected_world(st)
-	local list = menudata.worldlist:get_list()
-	local idx = st.selected_world_index or 1
-	local world = list[idx]
+	local raw_index, world = get_selected_world_spec(st)
 	if not world then return end
 
 	-- Check protocol / game config
-	configure_selected_world(idx)
+	configure_selected_world(world.path or (st.selected_world_index or 1))
 
-	local raw_index = menudata.worldlist:get_raw_index(idx)
 	gamedata.selected_world = raw_index
 	gamedata.singleplayer = not st.is_hosting
 
@@ -829,7 +877,9 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 				local prev_idx = st.get("selected_world_index")
 				local is_reclick = (prev_idx == w.list_index)
 				st.set("selected_world_index", w.list_index)
-				configure_selected_world(w.list_index)
+				st.set("selected_world_path", w.path)
+				menudata.selected_world = w
+				configure_selected_world(w.path or w.list_index)
 				core.settings:set("mainmenu_last_selected_world", tostring(w.raw_index))
 
 				local now = os.clock()
@@ -868,19 +918,22 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	end
 
 	if fields.world_configure then
-		local dlg = create_configure_world_dlg(st.selected_world_index or 1)
-		dlg:set_parent(mainmenu.ui_element)
-		mainmenu.ui_element:hide()
-		dlg:show()
+		local raw_index = get_selected_world_spec(st)
+		if raw_index and raw_index > 0 then
+			local dlg = create_configure_world_dlg(raw_index)
+			if dlg then
+				dlg:set_parent(mainmenu.ui_element)
+				mainmenu.ui_element:hide()
+				dlg:show()
+				return true
+			end
+		end
 		return true
 	end
 
 	if fields.world_delete then
-		local list = menudata.worldlist:get_list()
-		local idx = st.selected_world_index or (st.get and st.get("selected_world_index")) or 1
-		local cur = list and list[idx]
-		if cur then
-			local raw_index = menudata.worldlist:get_raw_index(idx)
+		local raw_index, cur = get_selected_world_spec(st)
+		if cur and raw_index and raw_index > 0 then
 			local dlg = create_delete_world_dlg(cur.name, raw_index)
 			dlg:set_parent(mainmenu.ui_element)
 			mainmenu.ui_element:hide()
@@ -890,19 +943,7 @@ function dispatcher.dispatch(st_or_fields, maybe_fields)
 	end
 
 	if fields.btn_open_world_folder then
-		local cur = nil
-		local list = menudata.worldlist and menudata.worldlist:get_list()
-		local raw = menudata.worldlist and menudata.worldlist.get_raw_list and menudata.worldlist:get_raw_list()
-		local idx = st.selected_world_index or (st.get and st.get("selected_world_index")) or 1
-		if list and list[idx] then
-			cur = list[idx]
-		elseif raw and raw[idx] then
-			cur = raw[idx]
-		elseif list and #list > 0 then
-			cur = list[1]
-		elseif raw and #raw > 0 then
-			cur = raw[1]
-		end
+		local _, cur = get_selected_world_spec(st)
 		if cur and cur.path then
 			core.open_dir(cur.path)
 		else

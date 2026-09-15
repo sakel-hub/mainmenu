@@ -386,7 +386,18 @@ function create_configure_world_dlg(worldidx)
 	dlg.data.selected_mod = tonumber(
 			core.settings:get("world_config_selected_mod")) or 0
 
-	dlg.data.worldspec = core.get_worlds()[worldidx]
+	if type(worldidx) == "table" and worldidx.path then
+		dlg.data.worldspec = worldidx
+	elseif type(worldidx) == "number" then
+		dlg.data.worldspec = core.get_worlds()[worldidx]
+	elseif type(worldidx) == "string" then
+		for _, w in ipairs(core.get_worlds()) do
+			if w.path == worldidx then
+				dlg.data.worldspec = w
+				break
+			end
+		end
+	end
 	if not dlg.data.worldspec then
 		dlg:delete()
 		return

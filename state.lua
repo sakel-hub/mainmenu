@@ -6,6 +6,7 @@ local state = {}
 local current_state = {
 	active_tab              = "games",
 	selected_world_index    = 1,
+	selected_world_path     = nil,
 	selected_game_id        = nil,
 	world_search_query      = "",
 	world_sort_col          = "name", -- "name", "game", "mg", "version", "mods", "size", "last_played"
@@ -83,7 +84,22 @@ function state.init()
 
 	local last_world = tonumber(core.settings:get("mainmenu_last_selected_world"))
 	if last_world and last_world > 0 then
-		current_state.selected_world_index = last_world
+		local all_w = core.get_worlds()
+		if all_w and all_w[last_world] and all_w[last_world].path then
+			current_state.selected_world_path = all_w[last_world].path
+		end
+		if menudata and menudata.worldlist and menudata.worldlist.get_current_index then
+			local cur_idx = menudata.worldlist:get_current_index(last_world)
+			if cur_idx and cur_idx > 0 then
+				current_state.selected_world_index = cur_idx
+			else
+				current_state.selected_world_index = 1
+			end
+		else
+			current_state.selected_world_index = 1
+		end
+	else
+		current_state.selected_world_index = 1
 	end
 
 	current_state.selected_game_id = core.settings:get("menu_last_game")
@@ -155,7 +171,25 @@ function state.save_persistent()
 		core.settings:set("mainmenu_session_tab", "")
 	end
 	if current_state.selected_world_index then
-		core.settings:set("mainmenu_last_selected_world", tostring(current_state.selected_world_index))
+		local raw_idx = nil
+		if menudata and menudata.worldlist and menudata.worldlist.get_raw_index then
+			local r = menudata.worldlist:get_raw_index(current_state.selected_world_index)
+			if r and r > 0 then
+				raw_idx = r
+			end
+		end
+		if not raw_idx and current_state.selected_world_path then
+			local all_w = core.get_worlds()
+			for i, w in ipairs(all_w) do
+				if w.path == current_state.selected_world_path then
+					raw_idx = i
+					break
+				end
+			end
+		end
+		if raw_idx then
+			core.settings:set("mainmenu_last_selected_world", tostring(raw_idx))
+		end
 	end
 	if current_state.selected_game_id then
 		core.settings:set("menu_last_game", current_state.selected_game_id)

@@ -431,14 +431,30 @@ function view_local.render(st, th)
 	local selected_world = nil
 
 	if #filtered_worlds > 0 then
+		local cur_path = (st.get and st.get("selected_world_path")) or st.selected_world_path
 		local cur_idx = st.selected_world_index or 1
-		for r_idx, w in ipairs(filtered_worlds) do
-			if w.list_index == cur_idx then
-				selected_filtered_row = r_idx
-				selected_world = raw_worldlist[w.list_index]
-				break
+
+		-- Prefer matching by unique directory path if available
+		if cur_path and cur_path ~= "" then
+			for r_idx, w in ipairs(filtered_worlds) do
+				if w.path == cur_path then
+					selected_filtered_row = r_idx
+					selected_world = raw_worldlist[w.list_index]
+					break
+				end
 			end
 		end
+
+		if not selected_world then
+			for r_idx, w in ipairs(filtered_worlds) do
+				if w.list_index == cur_idx then
+					selected_filtered_row = r_idx
+					selected_world = raw_worldlist[w.list_index]
+					break
+				end
+			end
+		end
+
 		if not selected_world then
 			selected_filtered_row = 1
 			selected_world = raw_worldlist[filtered_worlds[1].list_index]
@@ -451,6 +467,15 @@ function view_local.render(st, th)
 				end
 			end
 		end
+
+		if selected_world and selected_world.path then
+			if st.set then
+				st.set("selected_world_path", selected_world.path, true)
+			else
+				st.selected_world_path = selected_world.path
+			end
+		end
+		menudata.selected_world = selected_world
 	end
 
 	-- Left Panel: World List (Width: 11.9, Height: 10.45, matching Play Online)
