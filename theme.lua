@@ -303,10 +303,10 @@ function theme.input_box(x, y, w, h, is_focused)
 
 	local res = {
 		string.format("box[%f,%f;%f,%f;%s]", x, y, w, h, bg),
-		string.format("box[%f,%f;%f,%f;%s]", x, y, w, t, b_light),
-		string.format("box[%f,%f;%f,%f;%s]", x, y, t, h, b_light),
-		string.format("box[%f,%f;%f,%f;%s]", x, y + h - t, w, t, b_dark),
-		string.format("box[%f,%f;%f,%f;%s]", x + w - t, y, t, h, b_dark),
+		string.format("box[%f,%f;%f,%f;%s]", x, y, w, t, b_dark),
+		string.format("box[%f,%f;%f,%f;%s]", x, y, t, h, b_dark),
+		string.format("box[%f,%f;%f,%f;%s]", x, y + h - t, w, t, b_light),
+		string.format("box[%f,%f;%f,%f;%s]", x + w - t, y, t, h, b_light),
 	}
 	if is_focused then
 		table.insert(res, string.format("box[%f,%f;%f,0.05;%s]", x, y + h - 0.05, w, theme.colors.brand_green_hover))
